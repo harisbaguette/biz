@@ -25,8 +25,10 @@ while (!stopping) {
     const config = JSON.parse(readFileSync(configFile, "utf8"));
     if (config.url !== "https://biz.bluekite.co.kr")
       throw new Error("배포 주소 설정이 필요합니다.");
-    const python = resolve(config.source, "공장/.venv/bin/python");
-    if (!existsSync(python)) throw new Error("NAS 연결을 기다립니다.");
+    const localPython = resolve(config.runtime, "venv/bin/python");
+    const python = existsSync(localPython) ? localPython : resolve(config.source, "공장/.venv/bin/python");
+    if (!existsSync(config.source) || !existsSync(python))
+      throw new Error("NAS 연결을 기다립니다.");
     await new Promise((done) => {
       child = spawn(python, [resolve(folder, "connector/bridge.py"), "--config", configFile], {
         cwd: folder, stdio: ["ignore", "pipe", "pipe"],

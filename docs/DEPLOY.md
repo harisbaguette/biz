@@ -2,7 +2,7 @@
 
 배포 대상은 사용자가 지정한 **Cloudflare Workers + D1**이다. Worker·D1 이름은 `bluekite-biz`, 주소는 `https://biz.bluekite.co.kr`이다. Doweek과 같은 계정을 사용하되 별도 Worker와 DB를 만든다. Doweek 파일·DB·도메인 설정은 변경하지 않았다.
 
-2026-10-21 실제 배포했다. 전용 APAC D1 ID는 `2a52102f-e796-4f88-a74b-9230b717c9db`이며, HTTPS·로그인·권한 없는 접근 차단·13계정 수신·일정 저장·취소를 확인했다. 배포 후 발견한 연결 프로그램의 Cloudflare 차단과 자동 삽입 통계 스크립트의 CSP 충돌도 수정했다. 최신 검증 범위는 [검증 기록](검증.md)을 따른다.
+2026-10-21 실제 배포했다. 전용 APAC D1 ID는 `2a52102f-e796-4f88-a74b-9230b717c9db`이며, HTTPS·로그인·권한 없는 접근 차단·13계정 수신·일정 저장·취소를 확인했다. NAS 접근 권한 승인 후 임시 연결을 종료하고 설치 서비스의 재시작·연속 수신·웹 연결 경고 해제도 확인했다. 배포 후 발견한 연결 프로그램의 Cloudflare 차단과 자동 삽입 통계 스크립트의 CSP 충돌도 수정했다. 최신 검증 범위는 [검증 기록](검증.md)을 따른다.
 
 ## 적용 순서
 
@@ -14,7 +14,9 @@
 6. 기존 로컬 관제 연결을 종료하고 개인 bridge 설정의 `url`을 `https://biz.bluekite.co.kr`로 변경한다. 기존 Python 환경에서 `connector/bridge.py --config .local/bridge.json --once`를 실행해 첫 데이터를 전송한다. 이후 `node scripts/install-bridge.mjs --install`로 맥 로그인 시 실행되는 LaunchAgent를 등록한다. macOS가 `node`의 네트워크 볼륨 접근을 요청하면 허용한다. `launchctl`의 running 표시만으로 연결 성공을 판단하지 않고 서비스 로그와 웹의 마지막 수신 시각이 갱신되는지 확인한다. 프로그램은 상태를 약 45초마다 전송하고 지시는 8초마다 확인한다.
 7. 실제 HTTPS 주소에서 인증 차단, 로그인, 13계정·원본 수량 대조, 테스트 일정 저장·취소, 지시의 결과 전달을 검증한다. 운영 자동화 정지·재개는 시험 목적으로 실행하지 않는다.
 
-`node scripts/install-bridge.mjs`만 실행하면 파일을 준비하고 서비스에는 등록하지 않는다. 실행 파일과 설정은 NAS 공유 폴더 밖의 `~/Library/Application Support/BluekiteBusinessControl`에 둔다. NAS가 늦게 연결되면 30초 간격으로 기다린다. 같은 원본에 대한 연결 프로그램의 중복 실행은 파일 잠금으로 차단한다. 로그는 `bridge-service.log`이며 5MB가 넘으면 이전 파일 하나만 남긴다.
+`node scripts/install-bridge.mjs`만 실행하면 파일을 준비하고 서비스에는 등록하지 않는다. 실행 파일과 설정은 NAS 공유 폴더 밖의 `~/Library/Application Support/BluekiteBusinessControl`에 둔다. Python은 원본 자동화의 로컬 런타임인 `config.runtime/venv/bin/python`을 우선 사용하고, 없으면 원본 NAS의 `공장/.venv/bin/python`을 사용한다. 로컬 런타임은 NAS의 바이너리 라이브러리 로딩 지연을 피한다. NAS가 늦게 연결되면 30초 간격으로 기다린다. 같은 원본에 대한 연결 프로그램의 중복 실행은 파일 잠금으로 차단한다. 로그는 `bridge-service.log`이며 5MB가 넘으면 이전 파일 하나만 남긴다.
+
+재설치할 때 launchd의 기존 서비스 제거가 늦어져 등록이 실패하면, 종료 코드 5에 한해 1초 간격으로 최대 5번 등록을 시도한다. 다른 오류와 재시도 후 실패는 숨기지 않고 종료 코드와 함께 보고한다.
 
 서비스 상태는 `launchctl print gui/$(id -u)/com.bluekite.biz.bridge`로 확인한다. 중지는 `launchctl bootout gui/$(id -u)/com.bluekite.biz.bridge`이다. 다시 등록하려면 설치 명령을 실행한다. 맥이 꺼져 있거나 로그인하지 않은 동안에는 원본 상태 갱신과 지시 반영이 멈춘다. 웹은 마지막 상태와 연결 경고를 표시한다.
 

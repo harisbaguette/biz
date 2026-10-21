@@ -43,6 +43,15 @@ copyFileSync(prepared, target);
 chmodSync(target, 0o600);
 const domain = `gui/${process.getuid()}`;
 spawnSync("launchctl", ["bootout", `${domain}/${label}`], { stdio: "ignore" });
-const result = spawnSync("launchctl", ["bootstrap", domain, target], { stdio: "inherit" });
-if (result.status !== 0) process.exit(result.status || 1);
+// launchd can finish removing the previous job after bootout returns.
+let result;
+for (let attempt = 0; attempt < 5; attempt++) {
+  result = spawnSync("launchctl", ["bootstrap", domain, target], { encoding: "utf8" });
+  if (result.status !== 5) break;
+  if (attempt < 4) await new Promise((done) => setTimeout(done, 1000));
+}
+if (result.status !== 0) {
+  console.error(result.stderr || "상시 연결 서비스를 등록하지 못했습니다.");
+  process.exit(result.status || 1);
+}
 console.log("맥 로그인 시 관제 연결이 자동으로 켜집니다. 로그는 개인 데이터 폴더에 저장합니다.");
