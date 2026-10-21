@@ -1,0 +1,18 @@
+node_modules/
+/node_modules
+dist/
+.local/
+/.local
+.dev.vars
+.env*
+!.env.example
+.wrangler/
+test-results/
+playwright-report/
+__pycache__/
+.DS_Store
+# Local reviews contain contributor data, thumbnails and machine paths.
+artifacts/
+.project-map/
+*.log
+*.tsbuildinfo

@@ -1,0 +1,56 @@
+.world.business-world { --marker-ink:#244d40; --marker-paper:#f5f8ef; --marker-border:#a2b7a6; touch-action:none; }
+.world.business-world .world-markers { z-index:2; }
+.world.business-world .world-leaders { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; overflow:visible; }
+.world.business-world .world-leaders line { stroke:#3e6455; stroke-width:1; vector-effect:non-scaling-stroke; }
+.world.business-world .plot-label { width:74px; min-width:74px; height:44px; padding:4px 6px; border-radius:7px; border:1px solid var(--marker-border); color:var(--marker-ink); background:#f5f8efed; box-shadow:0 2px 4px #183e3419; gap:0; flex-direction:column; line-height:1.1; transition:background .12s; touch-action:none; overflow:visible; }
+.world.business-world .plot-label .account-marker-top { width:100%; display:flex; align-items:center; justify-content:center; gap:5px; height:17px; }
+.world.business-world .plot-label .account-number { font-size:12px; font-weight:800; }
+.world.business-world .plot-label .account-alias { font-size:11px; font-weight:650; white-space:nowrap; line-height:15px; }
+.world.business-world .plot-label .account-state-dot { width:5px; height:5px; border-radius:50%; background:#527d60; }
+.world.business-world .plot-label .account-miniature { width:18px; height:22px; border-radius:3px; position:absolute; left:3px; top:10px; object-fit:contain; background:#fff; }
+.world.business-world .plot-label:has(.account-miniature) { padding-left:23px; }
+.world.business-world .plot-label:has(.account-miniature) .account-marker-top { gap:2px; }
+.world.business-world .plot-label.danger { border-color:#b4644e; background:#fff2e6; color:#873e2f; }
+.world.business-world .plot-label.warning { border-color:#c59a47; background:#fff6de; color:#75531a; }
+.world.business-world .plot-label.active { border-color:#378d78; }
+.world.business-world .plot-label.unknown { color:#53685d; background:#e4eae2; }
+.world.business-world .plot-label.has-command { border-style:dashed; border-width:2px; }
+.world.business-world .plot-label.selected,.world.business-world .plot-label:hover { background:#244d40; color:#fff; border-color:#173e31; z-index:4; }
+.world.business-world .plot-label.selected .account-state-dot,.world.business-world .plot-label:hover .account-state-dot { background:#d4e6ca; }
+.world.business-world .plot-label .account-layer-value { position:absolute; right:-5px; top:-9px; min-width:23px; padding:2px 4px; border:1px solid #5c7967; border-radius:4px; background:#244d40; color:#fff; font-size:10px; line-height:14px; }
+.world.business-world .plot-tooltip { display:none; bottom:calc(100% + 5px); border-radius:5px; padding:5px 7px; font-size:11px; background:#244d40; opacity:1; }
+.world.business-world .plot-label:hover .plot-tooltip,.world.business-world .plot-label:focus-visible .plot-tooltip { display:block; }
+.world.business-world .process-label { position:absolute; left:0; top:0; width:96px; min-height:46px; border:1px solid #608c77; border-radius:7px; background:#e9f1e6f5; color:#244d40; padding:4px 5px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 2px 5px #254e3520; pointer-events:auto; visibility:hidden; touch-action:none; line-height:1.15; }
+.world.business-world .process-label>span { display:flex; gap:4px; align-items:center; }
+.world.business-world .process-label strong { font-size:12px; }
+.world.business-world .process-label small { font-size:10px; margin-top:3px; white-space:nowrap; }
+.world.business-world .process-label.warning { border-color:#b58c41; color:#74501c; background:#fff3d9f5; }
+.world.business-world .process-label.active { border-color:#2e8673; background:#d7eee2f5; }
+.world.business-world .process-label.selected,.world.business-world .process-label:hover { color:#fff; background:#244d40; }
+.world.business-world .process-live { position:absolute; right:3px; top:3px; }
+.world.business-world .world-retry { display:flex; align-items:center; gap:7px; border:1px solid #8da792; background:#f5f8ef; padding:10px 14px; min-height:44px; border-radius:8px; margin:12px auto; }
+.world.business-world .world-fallback { z-index:5; touch-action:pan-y; overflow:auto; max-height:calc(100% - 40px); }
+.world.business-world .world-fallback button { touch-action:manipulation; }
+.world.business-world .plot-label:focus-visible,.world.business-world .process-label:focus-visible { outline:3px solid #234f40; outline-offset:3px; }
+@media (max-width:540px) { .world.business-world .plot-label { width:58px; min-width:58px; } .world.business-world .process-label { width:84px; } .world.business-world .process-label strong { font-size:11px; } .world.business-world .account-miniature { display:none; } .world.business-world .plot-label:has(.account-miniature) { padding-left:6px; } }
+@media (max-height:500px) { .world.business-world .plot-label { width:58px; min-width:58px; } .world.business-world .process-label { width:86px; } .world.business-world .account-miniature { display:none; } .world.business-world .plot-label:has(.account-miniature) { padding-left:6px; } }
+/* Normal facilities keep a full touch target while exposing the miniature underneath. */
+.world.business-world .plot-label { width:58px; min-width:58px; height:44px; padding:2px; flex-direction:row; gap:3px; background:transparent; border-color:transparent; box-shadow:none; text-shadow:0 1px 2px #f7fbf0,0 0 4px #f7fbf0; }
+.world.business-world .plot-label .account-marker-top { width:auto; gap:3px; height:auto; }
+.world.business-world .plot-label .account-number { font-size:11px; }
+.world.business-world .plot-label .account-alias { display:none; font-size:11px; }
+.world.business-world .plot-label .account-miniature { display:block; position:static; width:22px; height:26px; object-fit:contain; border-radius:2px; background:transparent; }
+.world.business-world .plot-label:has(.account-miniature) { padding-left:2px; }
+.world.business-world .plot-label.warning,.world.business-world .plot-label.danger,.world.business-world .plot-label.selected,.world.business-world .plot-label.has-command { flex-wrap:wrap; gap:0 2px; text-shadow:none; }
+.world.business-world .plot-label.warning { background:#fff5dbe8; border-color:#c59a47; }
+.world.business-world .plot-label.danger { background:#fff0e4e8; border-color:#b4644e; }
+.world.business-world .plot-label.selected,.world.business-world .plot-label:hover { background:#244d40; color:#fff; border-color:#244d40; text-shadow:none; }
+.world.business-world .plot-label.warning .account-alias,.world.business-world .plot-label.danger .account-alias,.world.business-world .plot-label.selected .account-alias,.world.business-world .plot-label.has-command .account-alias { display:block; order:3; flex-basis:100%; height:12px; line-height:12px; }
+.world.business-world .plot-label:hover:not(.warning):not(.danger):not(.selected) .account-alias,.world.business-world .plot-label:focus-visible:not(.warning):not(.danger):not(.selected) .account-alias { display:block; position:absolute; top:calc(100% + 2px); left:50%; transform:translateX(-50%); color:#fff; background:#244d40; padding:3px 5px; border-radius:3px; pointer-events:none; }
+.world.business-world .process-label,.world.business-world .process-label.warning,.world.business-world .process-label.active { background:transparent; border-color:transparent; box-shadow:none; text-shadow:0 1px 2px #f7fbf0,0 0 4px #f7fbf0; }
+.world.business-world .process-label strong,.world.business-world .process-label small { font-size:11px; }
+.world.business-world .process-label.selected,.world.business-world .process-label:hover { background:#244d40; text-shadow:none; color:#fff; }
+.world.business-world .world-leaders line[data-important="false"] { display:none; }
+.world.business-world .plot-label .account-number { color:inherit; }
+
+.world.business-world .world-model-retry { position:absolute; left:16px; bottom:110px; z-index:5; min-height:44px; border:1px solid #b58c41; border-radius:7px; padding:6px 10px; display:flex; align-items:center; gap:6px; color:#74501c; background:#fff3d9; font-size:11px; }
