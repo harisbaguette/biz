@@ -62,7 +62,9 @@ def apply_command(command, runtime, selected):
 def request(base, token, path, body=None):
     raw = json.dumps(body, ensure_ascii=False).encode() if body is not None else None
     req = urllib.request.Request(base + path, data=raw,
-        headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json'})
+        headers={'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json',
+                 'Accept': 'application/json',
+                 'User-Agent': 'BluekiteBizBridge/1.0 (+https://biz.bluekite.co.kr)'})
     with urllib.request.urlopen(req, timeout=25) as response:
         return json.load(response)
 

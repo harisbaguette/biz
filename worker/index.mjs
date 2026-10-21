@@ -613,6 +613,8 @@ export default {
     if (new URL(req.url).pathname.startsWith("/api/")) return api(req, env);
     const response = await env.ASSETS.fetch(req),
       headers = new Headers(response.headers);
+    if (headers.get("Content-Type")?.includes("text/html"))
+      headers.set("Cache-Control", "public, no-cache, no-transform");
     headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Referrer-Policy", "same-origin");
     headers.set("X-Frame-Options", "DENY");

@@ -47,6 +47,7 @@ test("운영 서버는 개인 파일을 숨기고 HTTPS 세션으로만 업무 �
     assert.ok(healthy);
     const shell = await fetch(endpoint);
     assert.equal(shell.status, 200);
+    assert.match(shell.headers.get("Cache-Control"), /no-transform/);
     assert.match(
       shell.headers.get("Content-Security-Policy"),
       /connect-src 'self' blob:/,

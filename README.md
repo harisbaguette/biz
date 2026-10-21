@@ -4,7 +4,7 @@
 
 ## 켜기
 
-`관제 시작.command`를 실행한 뒤 [관제 열기](http://127.0.0.1:4317)를 누릅니다. 프로그램은 브라우저 포커스를 옮기지 않습니다. 현재 PC의 미리캔버스 작업실과 연결 설정이 준비되어 있습니다.
+[사업 관제 열기](https://biz.bluekite.co.kr)에서 접속 암호를 입력합니다. 암호는 운영 맥의 `~/Library/Application Support/BluekiteBusinessControl/접속 안내.txt`에 있습니다. `관제 시작.command`도 이 주소를 안내하며 브라우저 포커스를 옮기지 않습니다.
 
 - 작업동: 실제 제작물·계정 상태·재고를 봅니다. 선택하면 해결할 일, 마지막 관측과 다음 제출 예정이 나옵니다.
 - 재고: 제목·키워드 검색, 제출 가능·제출 제외·심사·공개·보류 구분. 검색과 보고 있던 위치를 유지합니다.
@@ -34,13 +34,13 @@ python3 tests/bridge_test.py
 npm run test:e2e
 ```
 
-완성 빌드는 `npm start`로 실행합니다. 화면 수정은 실행 중인 관제를 종료한 뒤 `npm run api`와 `npm run dev`를 각각 실행합니다. 운영 상태 연결은 기존 Python 환경에서 `connector/bridge.py --config .local/bridge.json`을 실행합니다. UI 시험은 메모리 DB에서 실행하므로 운영 지시를 발생시키지 않습니다. WebKit 시험은 `BIZ_BROWSER=webkit npm run test:e2e`입니다.
+운영 설정의 `npm start`는 웹 주소를 안내합니다. 로컬 화면 수정은 `npm run api`와 `npm run dev`를 각각 실행합니다. 완성 빌드의 로컬 확인은 `BIZ_LOCAL=1 node server/serve.mjs`를 사용합니다. 운영 연결 프로그램은 LaunchAgent가 실행하므로 중복으로 켜지 않습니다. UI 시험은 메모리 DB에서 실행하므로 운영 지시를 발생시키지 않습니다. WebKit 시험은 `BIZ_BROWSER=webkit npm run test:e2e`입니다.
 
 ## 배포 상태
 
-배포 대상은 Doweek과 같은 Cloudflare Workers + D1로 확정했습니다. `biz.bluekite.co.kr` 적용은 Cloudflare 계정 인증이 남아 있어 아직 끝나지 않았습니다. Cloudflare 실행 엔진과 로컬 D1에서 로그인·실데이터 저장·일정·3D 화면을 확인했습니다. 준비된 배포 순서는 [배포 안내](docs/DEPLOY.md)에 있습니다.
+`https://biz.bluekite.co.kr`에 Cloudflare Workers + D1로 배포했습니다. Doweek과 같은 계정의 별도 Worker·DB를 사용합니다. 실제 HTTPS·로그인·인증 차단·13계정 수신·일정 저장과 취소를 확인했습니다. 운영 방법은 [배포 안내](docs/DEPLOY.md)에 있습니다.
 
-맥 로그인 후 연결 프로그램을 자동으로 켜는 설정도 준비했습니다. 실제 서비스 등록은 도메인 배포 후 적용합니다. NAS 연결이 늦어지거나 인터넷이 끊기면 재시도하고, 같은 원본을 처리하는 연결 프로그램은 하나만 실행합니다.
+맥 로그인 시 연결 프로그램이 켜지도록 등록했습니다. 최초 실행에서 macOS가 `node`의 네트워크 볼륨 접근을 요청하면 허용해야 NAS 상태를 읽습니다. NAS 연결이 늦어지거나 인터넷이 끊기면 재시도하고, 같은 원본을 처리하는 연결 프로그램은 하나만 실행합니다. 맥이 꺼져 있거나 로그인하지 않으면 상태 갱신과 지시 반영은 멈춥니다.
 
 현재 맥의 보안 값·원본 스냅샷·접속 암호는 `~/Library/Application Support/BluekiteBusinessControl`에 저장합니다. 프로젝트의 `.local`은 이 개인 폴더를 가리키며 실제 파일은 NAS 공유 폴더 밖에 있습니다. `dist/`에는 기여자 계정이나 그림을 넣지 않습니다. 접속 암호 준비는 `node scripts/provision.mjs`이며 기존 암호를 덮어쓰지 않습니다.
 

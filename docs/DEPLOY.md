@@ -2,7 +2,7 @@
 
 배포 대상은 사용자가 지정한 **Cloudflare Workers + D1**이다. Worker·D1 이름은 `bluekite-biz`, 주소는 `https://biz.bluekite.co.kr`이다. Doweek과 같은 계정을 사용하되 별도 Worker와 DB를 만든다. Doweek 파일·DB·도메인 설정은 변경하지 않았다.
 
-현재는 계정 인증이 없어 실제 리소스 생성·도메인 적용 전이다. 초기 구현에서 Cloudflare 실행 엔진의 로컬 D1 저장·복원, 로그인, 일정 저장·취소, 정적 파일 보안 헤더와 3D 로딩을 확인했다. 최신 수정본의 검증 범위는 [검증 기록](검증.md)을 따른다. 초기 엔진 확인을 최신 원격 배포 확인으로 해석하지 않는다.
+2026-10-21 실제 배포했다. 전용 APAC D1 ID는 `2a52102f-e796-4f88-a74b-9230b717c9db`이며, HTTPS·로그인·권한 없는 접근 차단·13계정 수신·일정 저장·취소를 확인했다. 배포 후 발견한 연결 프로그램의 Cloudflare 차단과 자동 삽입 통계 스크립트의 CSP 충돌도 수정했다. 최신 검증 범위는 [검증 기록](검증.md)을 따른다.
 
 ## 적용 순서
 
@@ -11,12 +11,16 @@
 3. `npx wrangler d1 execute bluekite-biz --remote --file worker/schema.sql`로 스키마를 적용한다.
 4. `node scripts/provision.mjs`로 개인 데이터 폴더에 인증 값을 준비한다. `npx wrangler secret bulk .local/secrets.json`으로 연결 토큰과 암호 검증값만 전송한다.
 5. `npm run deploy`로 정적 파일과 API를 함께 올린다. `routes`의 custom domain이 `biz.bluekite.co.kr` DNS·인증서를 연결한다. 기존 레코드가 있으면 확인하고 충돌을 해결한다.
-6. 기존 로컬 관제 연결을 종료하고 개인 bridge 설정의 `url`을 `https://biz.bluekite.co.kr`로 변경한다. 기존 Python 환경에서 `connector/bridge.py --config .local/bridge.json --once`를 실행해 첫 데이터를 전송한다. 이후 `node scripts/install-bridge.mjs --install`로 맥 로그인 시 실행되는 LaunchAgent를 등록한다. 프로그램은 상태를 약 45초마다 전송하고 지시는 8초마다 확인한다.
+6. 기존 로컬 관제 연결을 종료하고 개인 bridge 설정의 `url`을 `https://biz.bluekite.co.kr`로 변경한다. 기존 Python 환경에서 `connector/bridge.py --config .local/bridge.json --once`를 실행해 첫 데이터를 전송한다. 이후 `node scripts/install-bridge.mjs --install`로 맥 로그인 시 실행되는 LaunchAgent를 등록한다. macOS가 `node`의 네트워크 볼륨 접근을 요청하면 허용한다. `launchctl`의 running 표시만으로 연결 성공을 판단하지 않고 서비스 로그와 웹의 마지막 수신 시각이 갱신되는지 확인한다. 프로그램은 상태를 약 45초마다 전송하고 지시는 8초마다 확인한다.
 7. 실제 HTTPS 주소에서 인증 차단, 로그인, 13계정·원본 수량 대조, 테스트 일정 저장·취소, 지시의 결과 전달을 검증한다. 운영 자동화 정지·재개는 시험 목적으로 실행하지 않는다.
 
 `node scripts/install-bridge.mjs`만 실행하면 파일을 준비하고 서비스에는 등록하지 않는다. 실행 파일과 설정은 NAS 공유 폴더 밖의 `~/Library/Application Support/BluekiteBusinessControl`에 둔다. NAS가 늦게 연결되면 30초 간격으로 기다린다. 같은 원본에 대한 연결 프로그램의 중복 실행은 파일 잠금으로 차단한다. 로그는 `bridge-service.log`이며 5MB가 넘으면 이전 파일 하나만 남긴다.
 
 서비스 상태는 `launchctl print gui/$(id -u)/com.bluekite.biz.bridge`로 확인한다. 중지는 `launchctl bootout gui/$(id -u)/com.bluekite.biz.bridge`이다. 다시 등록하려면 설치 명령을 실행한다. 맥이 꺼져 있거나 로그인하지 않은 동안에는 원본 상태 갱신과 지시 반영이 멈춘다. 웹은 마지막 상태와 연결 경고를 표시한다.
+
+연결 프로그램은 `BluekiteBizBridge/1.0` 식별자를 사용한다. Python 기본 식별자는 이 도메인의 Cloudflare Browser Integrity Check에서 1010으로 차단되었다. [Cloudflare 오류 설명](https://developers.cloudflare.com/support/troubleshooting/http-status-codes/cloudflare-1xxx-errors/error-1010/).
+
+HTML에는 `Cache-Control: public, no-cache, no-transform`을 적용한다. Cloudflare의 통계 스크립트 자동 삽입을 막고 앱의 `script-src 'self'` 보안 정책을 유지한다. 도메인 전체 보안 설정은 변경하지 않는다. [Cloudflare Web Analytics FAQ](https://developers.cloudflare.com/web-analytics/faq/).
 
 ## 원본 연결·복구
 
