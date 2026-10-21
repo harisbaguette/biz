@@ -271,7 +271,8 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
     function readSafe() {
       const width = element.clientWidth, height = element.clientHeight;
       const inset = width <= 480 ? 24 : 28;
-      safe = { left: inset, right: width - inset, top: 28, bottom: height - 28 };
+      const verticalInset = layout.cols === 3 && width <= 480 ? Math.max(4, Math.min(28, (height - 284) / 2)) : 28;
+      safe = { left: inset, right: width - inset, top: verticalInset, bottom: height - verticalInset };
       if (height < 240) safe = { left: 24, right: width - 24, top: 24, bottom: height - 24 };
     }
     const corners: THREE.Vector3[] = [];
@@ -347,7 +348,9 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
         marker.style.visibility = inside ? "visible" : "hidden";
         const leader = leaders.current.get(id); if (leader) leader.style.visibility = inside ? "visible" : "hidden";
         if (!inside) return;
-        anchors.set(id, {x: px, y: py}); nodes.push({ id, x: px, y: py, width: marker.offsetWidth, height: marker.offsetHeight });
+        const bounds = marker.getBoundingClientRect();
+        // Round fractional text widths outward, ignoring transform floating-point noise.
+        anchors.set(id, {x: px, y: py}); nodes.push({ id, x: px, y: py, width: Math.ceil(bounds.width - 0.001), height: Math.ceil(bounds.height - 0.001) });
       };
       for (const a of propsRef.current.snapshot.accounts) { const p = layout.plots[a.number - 1]; if (p) add(a.id, p[0], p[1]); }
       for (let i = 0; i < processes.length; i++) add("process-" + processes[i].key, ...layout.facilities[i]);

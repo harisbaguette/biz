@@ -4,9 +4,9 @@
 .world.business-world .world-leaders { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; overflow:visible; }
 .world.business-world .world-leaders line { stroke:var(--ui-line); stroke-width:2; vector-effect:non-scaling-stroke; }
 .world.business-world .world-leaders line[data-important="false"] { display:none; }
-.world.business-world .plot-label { position:absolute; left:0; top:0; width:44px; min-width:44px; height:44px; min-height:44px; padding:0; display:flex; align-items:center; justify-content:center; border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius); background:var(--ui-surface); color:var(--ui-fg); box-shadow:var(--ui-shadow-hard); pointer-events:auto; visibility:hidden; touch-action:none; transition:background var(--ui-step),color var(--ui-step); }
-.world.business-world .plot-label .account-marker-top { display:flex; align-items:center; justify-content:center; gap:2px; }
-.world.business-world .plot-label .account-number { color:inherit; min-width:0; font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); font-variant-numeric:tabular-nums; line-height:1; }
+.world.business-world .plot-label { position:absolute; left:0; top:0; width:44px; min-width:44px; height:44px; min-height:44px; padding:0; display:flex; align-items:center; justify-content:center; border-radius:var(--ui-radius); color:var(--ui-fg); pointer-events:auto; visibility:hidden; touch-action:none; transition:background var(--ui-step),color var(--ui-step); }
+.world.business-world .plot-label .account-marker-top { display:flex; align-items:center; justify-content:center; }
+.world.business-world .plot-label .account-number { color:inherit; min-width:0; font-weight:var(--ui-weight-bold); font-variant-numeric:tabular-nums; line-height:1; }
 .world.business-world .plot-label .account-state-dot { width:4px; height:4px; background:currentColor; }
 .world.business-world .plot-label .account-alias,.world.business-world .plot-label .account-miniature,.world.business-world .plot-label .account-layer-value { display:none; }
 .world.business-world .plot-label.danger,.world.business-world .plot-label.warning { background:var(--ui-fg); color:var(--ui-surface); }
@@ -18,10 +18,10 @@
 .world.business-world .plot-label:hover .plot-tooltip,.world.business-world .plot-label:focus-visible .plot-tooltip { display:block; }
 .world.business-world .process-label { position:absolute; left:0; top:0; width:max-content; min-width:88px; height:44px; min-height:44px; padding:0 var(--ui-gap-2); display:flex; align-items:center; justify-content:center; gap:var(--ui-gap-1); color:var(--ui-fg); background:var(--ui-surface); border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius); box-shadow:var(--ui-shadow-hard); pointer-events:auto; visibility:hidden; touch-action:none; }
 .world.business-world .process-label>span { display:flex; align-items:center; gap:var(--ui-gap-1); }
-.world.business-world .process-label strong { font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); line-height:1.2; white-space:nowrap; }
+.world.business-world .process-label strong { font-weight:var(--ui-weight-bold); line-height:1.2; white-space:nowrap; }
 .world.business-world .process-label small { display:none; }
 .world.business-world .process-label.warning { border-color:var(--ui-line); }
-.world.business-world .process-label.warning::before { content:"!"; font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); }
+.world.business-world .process-label.warning::before { font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); }
 .world.business-world .process-label.active,.world.business-world .process-label.selected,.world.business-world .process-label:hover { background:var(--ui-accent); color:var(--ui-on-accent); }
 .world.business-world .process-live { width:14px; height:14px; }
 .world.business-world .plot-label:focus-visible,.world.business-world .process-label:focus-visible { outline:var(--ui-ring-width) solid var(--ui-ring); outline-offset:var(--ui-ring-offset); box-shadow:var(--ui-ring-halo); }

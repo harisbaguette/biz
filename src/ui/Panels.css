@@ -33,7 +33,7 @@
 .panel .panel-body { flex: 1 1 auto; min-height: 0; overflow: auto; overscroll-behavior: contain; scrollbar-gutter: stable; padding: var(--ui-gap-5); }
 .panel .panel-body > :first-child { margin-top: 0; }
 .panel .panel-body > :last-child { margin-bottom: 0; }
-.panel .panel-footer { display: grid; grid-template-columns: 1fr 1fr; flex: none; gap: var(--ui-gap-3); padding: var(--ui-gap-4) var(--ui-gap-5); border-top: var(--ui-border) solid var(--ui-line); background: var(--ui-surface); }
+.panel .panel-footer { display: grid; flex: none; border-top: var(--ui-border) solid var(--ui-line); background: var(--ui-surface); }
 .panel .panel-footer .ui-button { min-width: 0; padding-inline: var(--ui-gap-3); }
 .panel :is(h3, p) { margin-block-start: 0; }
 .panel :is(button, input, select) { font: inherit; }
@@ -42,8 +42,8 @@
 .panel .section-title, .panel .section-heading h3 { font-size: var(--ui-text-base); line-height: var(--ui-leading); font-weight: 800; margin: var(--ui-gap-6) 0 var(--ui-gap-3); }
 .panel .section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: var(--ui-gap-3); }
 .panel .text-button { font-size: var(--ui-text-sm); min-height: var(--ui-tap-min); padding-inline: var(--ui-gap-2); }
-.panel .account-identity { display: grid; grid-template-columns: 80px minmax(0,1fr); gap: var(--ui-gap-4); align-items: center; margin-bottom: var(--ui-gap-5); }
-.panel .account-identity .asset-thumb { width: 80px; height: 80px; border: var(--ui-border) solid var(--ui-line); }
+.panel .account-identity { display: grid; align-items: center; }
+.panel .account-identity .asset-thumb { border: var(--ui-border) solid var(--ui-line); }
 .panel .status-tag { font-size: var(--ui-text-sm); white-space: normal; border-width: var(--ui-border); }
 .panel .status-tag:is(.danger,.warning) { color: var(--ui-fg); background: var(--ui-surface-2); }
 .panel .issue-message { gap: var(--ui-gap-3); margin-block: var(--ui-gap-4); padding: var(--ui-gap-4); background: var(--ui-surface-2); border: var(--ui-border) solid var(--ui-line); border-inline-start-width: calc(var(--ui-border) * 3); }
@@ -52,17 +52,12 @@
 .panel .issue-message strong { font-size: var(--ui-text-base); display: block; }
 .panel .issue-message p { font-size: var(--ui-text-base); line-height: var(--ui-leading); margin: var(--ui-gap-2) 0; }
 .panel .issue-message small { display: block; font-size: var(--ui-text-sm); color: var(--ui-fg-muted); overflow-wrap: anywhere; }
-.panel .account-observation { margin-block: var(--ui-gap-5); }
-.panel .account-observation .ui-description-list__row { flex-direction: row; align-items: baseline; justify-content: space-between; gap: var(--ui-gap-3); padding: var(--ui-gap-3) var(--ui-gap-4); }
-.panel .account-observation .ui-description-list__t { inline-size: auto; min-width: 0; font-size: var(--ui-text-sm); color: var(--ui-fg-muted); }
-.panel .account-observation .ui-description-list__d { text-align: right; font-size: var(--ui-text-base); font-weight: 700; }
-.panel .account-observation small { display: block; font-size: var(--ui-text-sm); font-weight: 400; color: var(--ui-fg-muted); }
 .panel .command-progress { display: grid; gap: var(--ui-gap-2); padding: var(--ui-gap-4); border: var(--ui-border) solid var(--ui-line); margin: var(--ui-gap-5) 0; background: var(--ui-surface-2); }
 .panel .command-progress strong { font-size: var(--ui-text-base); }
 .panel .command-progress span { font-size: var(--ui-text-base); overflow-wrap: anywhere; }
 .panel .command-progress small { font-size: var(--ui-text-sm); color: var(--ui-fg-muted); }
 .panel .command-progress.queued { border-inline-start: calc(var(--ui-border) * 3) solid var(--ui-accent); }
-.panel .account-stock { display: flex; justify-content: space-between; align-items: center; gap: var(--ui-gap-3); padding-top: var(--ui-gap-3); }
+.panel .account-stock { display: flex; justify-content: space-between; align-items: center; gap: var(--ui-gap-3); }
 .panel .account-stock > div { display: flex; flex-direction: column; }
 .panel .account-stock > div > span { font-size: var(--ui-text-sm); color: var(--ui-fg-muted); }
 .panel .account-stock strong { font-size: var(--ui-text-xl); line-height: var(--ui-leading-tight); font-weight: 800; }
@@ -104,7 +99,7 @@
 .panel .account-list b small { display: block; font-size: var(--ui-text-sm); font-weight: 400; color: var(--ui-fg-muted); }
 .panel .scope-line { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--ui-gap-2); min-height: var(--ui-tap-min); margin-bottom: var(--ui-gap-3); font-size: var(--ui-text-sm); font-weight: 700; }
 .panel .filter-tabs { overflow: visible; margin-bottom: var(--ui-gap-4); }
-.panel .filter-tabs .ui-block-list__chips { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--ui-gap-2); padding: 0; }
+.panel .filter-tabs .ui-block-list__chips { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); padding: 0; }
 .panel .filter-tabs li { min-width: 0; }
 .panel .filter-tabs button { width: 100%; min-height: var(--ui-tap-min); padding: var(--ui-gap-2) var(--ui-gap-1); font-size: var(--ui-text-sm); white-space: normal; }
 .panel .inventory-count { font-size: var(--ui-text-sm); margin-block: var(--ui-gap-4); }

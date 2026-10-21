@@ -95,10 +95,13 @@ test('휴대전화 글자 200%에서도 본문을 읽고 일정과 재확인 버
   await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
   await expect.poll(async () => (await page.locator('.panel-body').boundingBox())!.height).toBeGreaterThan(200);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  const buttons = await page.locator('.panel-footer button').evaluateAll(items => items.map(e => ({
-    font: parseFloat(getComputedStyle(e).fontSize), height: e.getBoundingClientRect().height, overflow: e.scrollWidth > e.clientWidth,
-  })));
-  expect(buttons.every(b => b.font >= 30 && b.height < 100 && !b.overflow)).toBe(true);
+  await page.evaluate(() => document.fonts.ready);
+  await expect.poll(async () => {
+    const buttons = await page.locator('.panel-footer button').evaluateAll(items => items.map(e => ({
+      font: parseFloat(getComputedStyle(e).fontSize), height: e.getBoundingClientRect().height, overflow: e.scrollWidth > e.clientWidth,
+    })));
+    return buttons.every(b => b.font >= 30 && b.height < 100 && !b.overflow);
+  }).toBe(true);
   await page.locator('.account-stock').scrollIntoViewIfNeeded();
   await expect(page.locator('.account-stock')).toBeInViewport();
   await page.getByRole('button', { name: '일정 추가', exact: true }).click();

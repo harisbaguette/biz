@@ -74,7 +74,6 @@ svg { stroke-width: 1.8; }
 .attention > strong { white-space: nowrap; }
 .attention > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .attention > svg:last-child { margin-left: auto; }
-.park-health { display: flex; align-items: center; gap: var(--ui-gap-2); min-height: 44px; color: var(--ui-success); font-size: var(--ui-text-sm); margin-top: var(--ui-gap-4); }
 .world-viewport { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; }
 .park-summary { flex: none; display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); background: var(--ui-surface); border-top: var(--ui-border) solid var(--ui-line); }
 .park-summary button { display: flex; align-items: center; gap: var(--ui-gap-3); min-height: 76px; padding: var(--ui-gap-3); text-align: left; min-width: 0; }
@@ -207,7 +206,6 @@ svg { stroke-width: 1.8; }
   .activity-peek { position: relative; inset: auto; }
   .attention { width: auto; margin: 0; padding-inline: var(--ui-gap-2); }
   .attention > span { display: none; }
-  .park-health { margin: 0; }
   .park-summary button { min-height: 52px; padding-block: var(--ui-gap-1); }
   .park-summary button > span { flex-direction: row; align-items: center; gap: var(--ui-gap-2); }
   .park-summary strong { font-size: var(--ui-text-base); }

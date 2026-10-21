@@ -8,7 +8,9 @@ export const processes: { key: ProcessKey; name: string; model: string }[] = [
 export type Position = readonly [number, number];
 export function siteLayout(width: number, height: number) {
   const aspect = width / Math.max(height, 1);
-  const cols = aspect > 1.45 ? 7 : aspect > 1.1 ? 5 : aspect < 0.95 ? 3 : 4;
+  // Six portrait rows use 284px for 44px targets and 4px gaps, plus 4px at each edge.
+  const compactPortrait = width <= 480 && height >= 292;
+  const cols = compactPortrait ? 3 : aspect > 1.45 ? 7 : aspect > 1.1 ? 5 : aspect < 0.95 ? 3 : 4;
   const plots: Position[] = Array.from({ length: 13 }, (_, i) => [
     ((i % cols) - (cols - 1) / 2) * 7.8,
     Math.floor(i / cols) * 8.2,
@@ -34,8 +36,52 @@ export function siteLayout(width: number, height: number) {
 export const plots = siteLayout(1440, 900).plots;
 export interface Rect { left: number; right: number; top: number; bottom: number }
 export interface LabelPosition { id: string; x: number; y: number; width: number; height: number }
+/** Nearest ordered centers with complete targets and gaps inside the available interval. */
+function packAxis(centers: number[], sizes: number[], start: number, end: number): number[] | null {
+  if (!centers.length) return [];
+  const offsets = [0];
+  for (let i = 1; i < sizes.length; i++) offsets.push(offsets[i - 1] + (sizes[i - 1] + sizes[i]) / 2 + 4);
+  const lower = start + sizes[0] / 2;
+  const upper = end - sizes[sizes.length - 1] / 2 - offsets[offsets.length - 1];
+  if (lower > upper) return null;
+  // Isotonic regression shares displacement across neighbours instead of evicting
+  // the last marker. Offsets turn the required target separation into simple order.
+  const blocks: { sum: number; count: number }[] = [];
+  for (let i = 0; i < centers.length; i++) {
+    blocks.push({ sum: centers[i] - offsets[i], count: 1 });
+    while (blocks.length > 1) {
+      const right = blocks[blocks.length - 1], left = blocks[blocks.length - 2];
+      if (left.sum / left.count <= right.sum / right.count) break;
+      blocks.splice(-2, 2, { sum: left.sum + right.sum, count: left.count + right.count });
+    }
+  }
+  return blocks.flatMap(block => Array<number>(block.count).fill(Math.max(lower, Math.min(upper, block.sum / block.count))))
+    .map((center, i) => center + offsets[i]);
+}
+function arrangeAlignedRows(nodes: LabelPosition[], safe: Rect): LabelPosition[] | null {
+  const rows: LabelPosition[][] = [];
+  for (const node of [...nodes].sort((a, b) => a.y - b.y || a.x - b.x)) {
+    const row = rows[rows.length - 1];
+    if (row && Math.abs(node.y - row[0].y) < 0.01) row.push(node);
+    else rows.push([node]);
+  }
+  // Rotated views retain the free placement solver. Do not invent rows there.
+  if (rows.length < 2 || !rows.some(row => row.length > 1)) return null;
+  const ys = packAxis(rows.map(row => row[0].y), rows.map(row => Math.max(...row.map(node => node.height))), safe.top, safe.bottom);
+  if (!ys) return null;
+  const result: LabelPosition[] = [];
+  for (let i = 0; i < rows.length; i++) {
+    const row = rows[i].sort((a, b) => a.x - b.x);
+    const xs = packAxis(row.map(node => node.x), row.map(node => node.width), safe.left, safe.right);
+    if (!xs) return null;
+    row.forEach((node, j) => result.push({ ...node, x: xs[j], y: ys[i] }));
+  }
+  return result;
+}
 /** Place complete hit rectangles, rather than only text pixels. Leader lines retain identity. */
 export function arrangeLabels(nodes: LabelPosition[], safe: Rect): LabelPosition[] {
+  const aligned = arrangeAlignedRows(nodes, safe);
+  if (aligned) return aligned;
   const placed: LabelPosition[] = [];
   const overlap = (a: LabelPosition, b: LabelPosition) =>
     Math.max(0, (a.width + b.width) / 2 + 4 - Math.abs(a.x - b.x)) *
