@@ -1,0 +1,2 @@
+# Preserve upstream bytes so the design-system manifest also verifies after checkout.
+src/design-system/vendor/** -text whitespace=cr-at-eol

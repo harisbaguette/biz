@@ -1,0 +1,9 @@
+.management-toolbar { display: flex; align-items: end; gap: var(--ui-gap-3); }
+.management-toolbar .ui-field { flex: 1; min-width: 0; margin-bottom: 0; }
+.management-help { font-size: var(--ui-text-sm); line-height: var(--ui-leading); margin-block: var(--ui-gap-4); }
+.management-record { border-bottom: var(--ui-border-thin) solid var(--ui-line-soft); padding-block: var(--ui-gap-4); }
+.management-record summary { cursor: pointer; min-height: 44px; }
+.management-record summary small { color: var(--ui-fg-muted); font-size: var(--ui-text-xs); }
+.management-record summary strong { display: block; margin-top: var(--ui-gap-2); font-size: var(--ui-text-base); line-height: var(--ui-leading); overflow-wrap: anywhere; }
+.management-content { white-space: pre-wrap; overflow-wrap: anywhere; font-size: var(--ui-text-sm); line-height: 1.8; }
+.management-record.archived summary strong { color: var(--ui-fg-muted); }

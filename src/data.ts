@@ -25,10 +25,11 @@ export const date = (value: string | null | undefined, time = false) =>
     : "예정 없음";
 export const statuses: Record<string, string> = {
   login_required: "로그인 필요",
-  blocked: "작업 막힘",
+  blocked: "자동 확인 미완료",
   reconciliation_required: "결과 대조 필요",
   capacity_full: "심사 한도 대기",
-  review_scheduled: "심사 중",
+  review_scheduled: "확인 예약",
+  review_pending: "기존 제출분 심사 대기",
   ready_for_upload: "제출 준비",
   waiting_for_assets: "재고 대기",
   submitted: "제출 완료",
@@ -37,7 +38,7 @@ export const statuses: Record<string, string> = {
   recheck_requested: "재확인 대기",
   approved: "승인",
   prepared: "제출 준비",
-  uploaded: "업로드 완료",
+  uploaded: "업로드 · 제출 전",
   ready: "제출 가능",
   quarantined: "보류",
   generated: "검수 대기",
@@ -66,7 +67,13 @@ export function severity(
 export const isIssue = (a: Account) =>
   ["danger", "warning"].includes(severity(a));
 export function status(a: Account) {
-  return a.running ? "실행 감지" : statuses[a.status] || "상태 확인";
+  if (a.running) {
+    const observed = !a.bound ? "계정 연결 확인" : statuses[a.status] || "상태 확인";
+    return isIssue(a) ? `${observed} · 실행 감지` : "실행 감지";
+  }
+  if (a.status === "review_scheduled" && Number.isFinite(Date.parse(a.nextCheckAt || "")) && Date.parse(a.nextCheckAt!) <= Date.now())
+    return "순회 대기";
+  return statuses[a.status] || "상태 확인";
 }
 export const isStale = (s: Snapshot | null) =>
   !s || Date.now() - Date.parse(s.receivedAt) > 180000;

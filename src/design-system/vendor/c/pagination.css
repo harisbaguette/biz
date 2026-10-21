@@ -1,0 +1,21 @@
+/* ui/pagination — 번호 하나하나가 손가락으로 누를 수 있는 크기(44px) */
+.ui-pagination{ margin:var(--ui-gap-8) 0; }
+.ui-pagination__list{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:center; gap:var(--ui-gap-1);
+  list-style:none; margin:0; padding:0;
+}
+.ui-pagination__link{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:var(--ui-tap-min); min-height:var(--ui-tap-min); padding:0 var(--ui-gap-2);
+  font-family:var(--ui-font-display); font-size:var(--ui-text-sm); font-weight:700;
+  color:var(--ui-fg); text-decoration:none; background:var(--ui-surface);
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+  transition:background-color var(--ui-step), color var(--ui-step);
+}
+.ui-pagination__link:hover{ background:var(--ui-surface-2); }
+.ui-pagination__link.is-current{ background:var(--ui-accent); color:var(--ui-on-accent); border-color:var(--ui-accent); }
+.ui-pagination__link--edge{ padding:0 var(--ui-gap-3); }
+.ui-pagination__gap{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:var(--ui-gap-6); min-height:var(--ui-tap-min); color:var(--ui-fg-faint);
+}

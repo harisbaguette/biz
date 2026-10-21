@@ -1,0 +1,69 @@
+/* ui/block-list — 항목 목록 화면. 격자 한 벌이 검색칸·목록·쪽번호를 모두 제자리에 앉힌다.
+
+   왜 격자 하나로 다 하는가: 검색칸과 쪽번호를 이 블록이 다시 그리면 부품과 두 벌이 되어
+   언젠가 어긋난다. 대신 안쪽에 넣은 진짜 부품을 알아보고 "한 줄을 다 쓰라"고만 시킨다. */
+.ui-block-list{ margin:var(--ui-gap-8) 0; }
+
+.ui-block-list__head{ margin-bottom:var(--ui-gap-4); }
+.ui-block-list__title{
+  margin:0; font-family:var(--ui-font-display); font-size:var(--ui-text-2xl);
+  font-weight:var(--ui-weight-bold); line-height:var(--ui-leading-tight);
+  color:var(--ui-fg);
+}
+.ui-block-list__desc{
+  margin:var(--ui-gap-2) 0 0; max-width:52ch;
+  font-size:var(--ui-text-sm); line-height:var(--ui-leading); color:var(--ui-fg-muted);
+}
+
+/* 필터 칩 줄 — 좁은 화면에서는 옆으로 밀어 볼 수 있게 두되, 페이지 전체가 밀리지 않게 가둔다 */
+.ui-block-list__filters{
+  margin-bottom:var(--ui-gap-4);
+  overflow-x:auto; overscroll-behavior-x:contain;
+}
+.ui-block-list__chips{
+  display:flex; flex-wrap:nowrap; align-items:center; gap:var(--ui-gap-2);
+  list-style:none; margin:0; padding:0 0 var(--ui-gap-1);
+}
+.ui-block-list__chip-item{ margin:0; flex:none; }
+.ui-block-list__chip{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-height:var(--ui-tap-min); padding:0 var(--ui-gap-4); white-space:nowrap;
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+  background:var(--ui-surface);
+  font-family:var(--ui-font-display); font-size:var(--ui-text-sm);
+  font-weight:var(--ui-weight-bold); text-decoration:none;
+  transition:background-color var(--ui-step), color var(--ui-step);
+}
+/* 글 본문 링크 규칙에 색을 빼앗기지 않게 색만 무게를 한 칸 올린다 */
+.ui-block-list .ui-block-list__chip{ color:var(--ui-fg); }
+.ui-block-list__chip:hover{ background:var(--ui-surface-2); }
+/* 지금 고른 칩 — 채운 색과 함께 그림자가 사라진다(눌려 있는 상태) */
+.ui-block-list .ui-block-list__chip.is-current{
+  background:var(--ui-accent); color:var(--ui-on-accent); border-color:var(--ui-accent);
+}
+
+.ui-block-list__body{
+  display:grid; grid-template-columns:minmax(0,1fr); gap:var(--ui-gap-4);
+  align-items:start;
+}
+/* 검색칸과 쪽번호는 한 줄을 다 쓴다 — 넣은 순서 그대로 맨 위·맨 아래에 앉는다 */
+.ui-block-list__body > .ui-search-box,
+.ui-block-list__body > .ui-pagination{ grid-column:1 / -1; }
+.ui-block-list__body > .ui-search-box{ max-width:none; }
+.ui-block-list__body > .ui-pagination{
+  margin:var(--ui-gap-2) 0 0; padding-top:var(--ui-gap-4);
+  border-top:var(--ui-border-thin) solid var(--ui-line-soft);
+}
+
+
+/* 글 본문 규칙(article p/li)이 부품 색을 이기므로, 색만 무게를 한 칸 올려 다시 못 박는다(정본 §3). */
+.ui-block-list .ui-block-list__title{ color:var(--ui-fg); }
+.ui-block-list .ui-block-list__desc{ color:var(--ui-fg-muted); }
+
+@media (min-width:640px){ /* --ui-bp-sm */
+  .ui-block-list__body[data-cols="2"],
+  .ui-block-list__body[data-cols="3"]{ grid-template-columns:repeat(2,minmax(0,1fr)); }
+}
+@media (min-width:1024px){ /* --ui-bp-lg */
+  .ui-block-list__body[data-cols="3"]{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+}

@@ -1,0 +1,206 @@
+/* ======================================================================
+   Inkpress UI — 토큰 레이어 (값의 단일 출처는 custom.css :root 의 --c-*)
+
+   규칙 1: 이 파일은 원시 색값(#hex·rgb·hsl)을 절대 만들지 않는다.
+           모든 --ui-* 는 기존 --c-* 파생이며, 그래서 Phase 43(하드코딩 색 0건)을
+           구조적으로 통과하고, 블로그별로 --c-* 만 갈아 끼우면 UI 전체가 따라온다.
+   규칙 2: 컴포넌트 CSS 는 --ui-* 만 참조한다(--c-* 직접 참조 금지).
+           한 단계 우회를 두는 이유 — 나중에 UI 레이어만 따로 리브랜딩할 여지를 남긴다.
+   ====================================================================== */
+
+:root {
+  /* ---- 지면 · 표면 -------------------------------------------------
+     주의: 이 저장소의 원본 토큰은 이름과 밝기가 직관과 다르다(실측 확인).
+       라이트  --c-canvas #F3F4F2(지면) · --c-paper #FFFFFF(카드) · --c-surface #E6E7E3(보조)
+       다크    --c-canvas #14171A(지면) · --c-paper #14171A          · --c-surface #22272B
+     그래서 밝은 화면과 어두운 화면에서 "카드가 지면보다 도드라진다"는 관계를 지키려면
+     아래처럼 라이트와 다크에서 서로 자리를 바꿔 물려야 한다. (--c-chip 은 칩 배경 전용
+     잉크색이라 표면으로 쓰면 안 된다 — 라이트에서 새까맣게 나온다.) */
+  --ui-bg:            var(--c-canvas);
+  --ui-surface:       var(--c-paper);
+  --ui-surface-2:     var(--c-surface);
+  --ui-canvas:        var(--c-canvas);
+
+  /* ---- 글자 -------------------------------------------------------- */
+  --ui-fg:            var(--c-ink);
+  --ui-fg-soft:       var(--c-ink-soft);
+  --ui-fg-muted:      var(--c-muted);
+  --ui-fg-faint:      var(--c-faint, var(--c-muted));
+
+  /* ---- 괘선 --------------------------------------------------------
+     하드보더는 글자와 같은 잉크색을 쓴다. 그래야 어두운 화면에서 색만 뒤집혀
+     선이 사라지지 않는다(후보B 규격: "다크에서도 선은 사라지지 않고 색만 반전"). */
+  --ui-line:          var(--c-ink);
+  --ui-line-soft:     var(--c-faint);   /* 표 내부 1px — 옅게 */
+
+  /* ---- 액센트 (채도 있는 색은 이 하나뿐) --------------------------- */
+  --ui-accent:        var(--c-accent);
+  --ui-accent-strong: var(--c-accent-strong, var(--c-accent));
+  --ui-accent-soft:   var(--c-accent-soft);
+  --ui-on-accent:     var(--c-on-accent);
+
+  /* ---- 의미색 (상태 표시 전용 — 장식으로 쓰지 않는다) -------------- */
+  --ui-success:       var(--c-success);
+  --ui-success-soft:  var(--c-success-soft);
+  --ui-warning:       var(--c-warning);
+  --ui-warning-soft:  var(--c-warning-soft);
+  --ui-danger:        var(--c-danger);
+  --ui-danger-soft:   var(--c-danger-soft);
+  --ui-info:          var(--c-accent);
+  --ui-info-soft:     var(--c-accent-soft);
+
+  /* ---- 그래프 계열 색 (여러 줄기를 한 그림에 겹칠 때만) -------------
+     ⚠️ 색만으로 줄기를 구분하게 두지 마라. 이 여섯 색은 지면과는 잘 갈리지만
+        서로끼리는 밝기가 비슷해서(계산해 본 값: 이웃끼리 1.01~1.60) 색맹인 사람에게는
+        붙어 보인다. 반드시 줄기마다 이름표·무늬·직접 라벨을 함께 붙여라.
+     여섯을 넘기지 않는다 — 그보다 많으면 사람이 색으로 못 가른다(업계 통례).
+     지면 대비는 밝은/어두운 양쪽에서 전부 3:1 을 넘긴다(계산해 본 값):
+       밝은 화면  지면 5.50~10.33 · 카드 6.07~11.40 · 보조면 4.88~9.18
+       어두운 화면 지면 6.62~ 8.74 · 보조면 5.54~ 7.32
+     원시 색값은 하나도 만들지 않는다 — 전부 기존 --c-* 파생이라 블로그별 리브랜딩을 따라간다.
+     이웃끼리 색상(빨강·파랑…)이 최대한 멀도록 순서를 짰다. */
+  --ui-series-1:      var(--c-accent);     /* 초록 — 언제나 첫 줄기 */
+  --ui-series-2:      var(--c-cat-1);      /* 파랑 */
+  --ui-series-3:      var(--c-cat-4);      /* 주황 */
+  --ui-series-4:      var(--c-cat-2);      /* 보라 */
+  --ui-series-5:      var(--c-cat-3);      /* 자주 */
+  --ui-series-6:      var(--c-ink-soft);   /* 잉크 — 나머지·기타 몫 */
+
+  /* ---- 겹침 · 그림자 -----------------------------------------------
+     그림자 색도 잉크색이다. --c-hard 는 어두운 화면에서 검정(#000)으로 고정돼
+     어두운 지면 위에서 그림자가 사라지므로 쓰지 않는다(실측 확인). */
+  --ui-scrim:         var(--c-overlay-backdrop, var(--c-scrim));
+  --ui-shadow-color:  var(--c-ink);
+
+  /* ---- 형태 (잉크 프레스 언어 — 여기서 벗어나면 언어가 깨진다) ----- */
+  --ui-radius:        0px;      /* radius 0 고정. 예외 없음 */
+  --ui-border:        2px;      /* 하드보더 단일 굵기 */
+  --ui-border-thin:   1px;      /* 표 내부 실선 전용 */
+
+  /* 시그니처 토큰 — blur 0 하드 오프셋 섀도우. 모든 떠 있는 표면이 공유한다 */
+  --ui-shadow-hard:       var(--ui-border) var(--ui-border) 0 var(--ui-shadow-color);
+  --ui-shadow-hard-lg:    4px 4px 0 var(--ui-shadow-color);
+  --ui-shadow-hard-press: 0 0 0 var(--ui-shadow-color);
+
+  /* ---- 포커스 (키보드 사용자가 항상 위치를 안다) -------------------
+     한 겹짜리 링은 어느 한쪽 지면에서 반드시 사라진다 — 밝은 링은 흰 카드 위에서,
+     어두운 링은 검은 단추 위에서 안 보인다. 그래서 밝기가 서로 반대인 두 겹을 겹쳐 둔다.
+     안쪽 겹(--ui-ring-contrast)이 링과 부품 사이 틈을 메우고, 바깥 겹(--ui-ring)이 액센트다.
+     어떤 바탕 위에서도 최소 한 겹이 3:1 을 넘는다(WCAG 2.2 기법 C40 · 성공기준 2.4.13).
+     계산해 본 값(두 겹 중 잘 보이는 쪽):
+       밝은 화면  지면 5.54 · 카드 6.11 · 보조면 4.92 · 잉크 단추 18.42 · 액센트 단추 6.11
+       어두운 화면 지면 6.62 · 보조면 5.54 · 잉크 글자면 14.88 · 액센트 단추 6.62
+       두 겹끼리 서로도 6.11(밝은) / 6.62(어두운) 라 겹이 서로 뭉개지지 않는다.
+     --c-paper 는 밝은 화면에서 흰색·어두운 화면에서 먹색이라, 분기 없이 저절로 뒤집힌다. */
+  --ui-ring:          var(--ui-accent);
+  --ui-ring-contrast: var(--c-paper);
+  --ui-ring-width:    3px;
+  --ui-ring-offset:   2px;
+  /* 안쪽 겹은 링 간격만큼만 번지게 해서 틈을 정확히 메운다(퍼짐 0 = blur 없음, 언어 유지) */
+  --ui-ring-halo:     0 0 0 var(--ui-ring-offset) var(--ui-ring-contrast);
+
+  /* ---- 간격 (기존 스케일 상속) ------------------------------------- */
+  --ui-gap-1:         var(--space-1);
+  --ui-gap-2:         var(--space-2);
+  --ui-gap-3:         var(--space-3);
+  --ui-gap-4:         var(--space-4);
+  --ui-gap-5:         var(--space-5);
+  --ui-gap-6:         var(--space-6);
+  --ui-gap-8:         var(--space-8);
+  --ui-gap-10:        var(--space-10);
+  --ui-gap-12:        var(--space-12);
+
+  /* ---- 타이포 ------------------------------------------------------ */
+  --ui-font-display:  var(--font-display);
+  --ui-font-body:     var(--font-body);
+  --ui-font-mono:     var(--font-mono);
+  --ui-text-xs:       0.8125rem;   /* 13px — 메타 최소 */
+  --ui-text-sm:       0.875rem;    /* 14px — 보조 라벨 */
+  --ui-text-base:     1rem;        /* 16px — 본문 바닥(접근성 하한) */
+  --ui-text-lg:       1.125rem;
+  --ui-text-xl:       1.375rem;
+  --ui-text-2xl:      1.75rem;     /* 28px — 섹션 제목 */
+  --ui-text-3xl:      2.25rem;     /* 36px — 화면 제목 */
+  --ui-text-display:  clamp(2.25rem, 1.6rem + 2.6vw, 3.25rem);  /* 히어로 전용 */
+  --ui-leading:       1.7;
+  --ui-leading-tight: 1.25;
+
+  /* ---- 본문 묶음(typeset) — 글 한 벌의 뿌리 값 셋 -------------------
+     본문 크기·줄 간격·문단 사이 이 셋만 정하면 제목 크기, 목록 들여쓰기,
+     제목 위아래 여백, 구분선 주위 여백이 전부 여기서 계산돼 따라온다.
+     ui/prose 의 preset(post·docs·compact)은 이 셋만 갈아 끼운다. */
+  --ui-typeset-size:    var(--ui-text-base);
+  --ui-typeset-leading: var(--ui-leading);
+  --ui-typeset-flow:    var(--ui-gap-4);
+
+  /* 굵기 — 3단만. 그 사이 값을 쓰면 위계가 흐려진다 */
+  --ui-weight-normal: 400;
+  --ui-weight-medium: 600;
+  --ui-weight-bold:   800;
+
+  /* ---- 크기 (터치 타깃 44px 바닥) ---------------------------------- */
+  --ui-h-sm:          36px;
+  --ui-h-md:          44px;   /* 기본 = 접근성 바닥과 같다 */
+  --ui-h-lg:          52px;
+  --ui-tap-min:       44px;
+
+  /* ---- 모션 (스텝 = 잉크가 눌리는 느낌) ----------------------------
+     시간은 이름 붙인 계단 넷으로만 고른다 — 작게 움직이는 것은 빠르게,
+     크게 움직이는 것은 느리게. 부품 CSS 안에 시간을 손으로 적지 않는다.
+     넷 다 300ms 이하(정본 §2 모션 규약).
+       instant 80ms  눌림·색 바뀜 (스텝 모션의 바닥, --ui-step 이 이 값을 쓴다)
+       fast    120ms 작은 것: 도구말·힌트가 뜨고 사라짐
+       (보통)  180ms 알림·펼침·진행 막대 — 이름은 --ui-dur
+       slow    280ms 큰 것: 서랍·시트가 화면을 가로질러 들어옴 */
+  --ui-dur-instant:   80ms;
+  --ui-dur-fast:      120ms;
+  --ui-dur:           180ms;
+  --ui-dur-slow:      280ms;
+  --ui-step:          var(--ui-dur-instant) steps(3);
+  --ui-ease:          cubic-bezier(.4, 0, .2, 1);
+  --ui-ease-sheet:    cubic-bezier(.32, .72, 0, 1);
+
+  /* ---- 화면 폭 기준값 (브레이크포인트) -------------------------------
+     CSS 미디어쿼리는 var()를 못 읽으므로 이 토큰은 "규약의 단일 출처"다.
+     부품 CSS는 아래 5개 값 밖의 폭을 새로 만들지 않는다(예: 860px 금지 → 768px).
+     JS·인라인 스타일에서는 var(--ui-bp-*)를 그대로 읽어 쓴다. */
+  --ui-bp-xs:         480px;   /* 작은 손전화 */
+  --ui-bp-sm:         640px;   /* 손전화 가로 · 기본 접기점 */
+  --ui-bp-md:         768px;   /* 작은 판 · 옆칸 접기점 */
+  --ui-bp-lg:        1024px;   /* 판 가로 · 노트북 */
+  --ui-bp-xl:        1280px;   /* 넓은 화면 */
+
+  /* ---- 층위 -------------------------------------------------------- */
+  --ui-z-sticky:      10;
+  --ui-z-dropdown:    50;
+  --ui-z-overlay:     100;
+  --ui-z-toast:       200;
+}
+
+/* ----------------------------------------------------------------------
+   어두운 화면에서 표면 두 장의 자리를 바꾼다.
+   원본 토큰이 다크에서 --c-paper(#14171A)=지면과 같고 --c-surface(#22272B)가 더 밝기 때문에,
+   그대로 두면 카드가 지면에 묻힌다. 자리를 바꿔야 "카드가 지면 위에 얹혀 있다"가 유지된다.
+   두 경로로 켠다: 사용자가 명시로 고른 어두운 화면 / 기기 설정이 어두운 화면(명시로 밝게 고른 경우 제외).
+   ---------------------------------------------------------------------- */
+:root[data-theme="dark"] {
+  --ui-surface:   var(--c-surface);
+  --ui-surface-2: var(--c-paper);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ui-surface:   var(--c-surface);
+    --ui-surface-2: var(--c-paper);
+  }
+}
+
+/* 움직임을 줄여 달라고 설정한 사용자: 이동은 없애고 상태색은 남긴다 */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --ui-step:        0s steps(1);
+    --ui-dur-instant: 0.01ms;
+    --ui-dur-fast:    0.01ms;
+    --ui-dur:         0.01ms;
+    --ui-dur-slow:    0.01ms;
+  }
+}

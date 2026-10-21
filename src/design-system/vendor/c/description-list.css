@@ -1,0 +1,36 @@
+/* ui/description-list — 이름-값 짝 목록. 줄과 줄 사이는 1px 괘선(표 내부 규격)으로만 나눈다 */
+.ui-description-list{
+  margin:var(--ui-gap-4) 0;
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+  background:var(--ui-surface); color:var(--ui-fg);
+}
+.ui-description-list__title{
+  margin:0; padding:var(--ui-gap-2) var(--ui-gap-4);
+  font-family:var(--ui-font-display); font-size:var(--ui-text-sm);
+  font-weight:var(--ui-weight-bold); letter-spacing:.01em;
+  border-bottom:var(--ui-border) solid var(--ui-line);
+  background:var(--ui-surface-2);
+}
+.ui-description-list__dl{ margin:0; }
+.ui-description-list__row{
+  display:flex; flex-direction:column; gap:var(--ui-gap-1);
+  padding:var(--ui-gap-3) var(--ui-gap-4);
+  border-top:var(--ui-border-thin) solid var(--ui-line-soft);
+}
+.ui-description-list__row:first-child{ border-top:0; }
+.ui-description-list__t{
+  margin:0; flex:none;
+  font-family:var(--ui-font-display); font-size:var(--ui-text-sm);
+  font-weight:var(--ui-weight-bold); color:var(--ui-fg-soft);
+}
+.ui-description-list__d{
+  margin:0; min-width:0;
+  font-size:var(--ui-text-base); color:var(--ui-fg); line-height:var(--ui-leading);
+}
+/* 넓은 화면에서만 이름을 왼쪽 칸으로 뺀다(모바일 1열이 정본) */
+@media (min-width:640px){ /* --ui-bp-sm */
+  .ui-description-list--row .ui-description-list__row{
+    flex-direction:row; align-items:baseline; gap:var(--ui-gap-4);
+  }
+  .ui-description-list--row .ui-description-list__t{ inline-size:9rem; }
+}

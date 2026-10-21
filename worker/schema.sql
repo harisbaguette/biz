@@ -12,3 +12,9 @@ CREATE TABLE IF NOT EXISTS preview_failures (id TEXT PRIMARY KEY, attempts INTEG
 CREATE INDEX IF NOT EXISTS commands_queued_payload ON commands(action,payload) WHERE status='queued';
 CREATE TABLE IF NOT EXISTS command_requests (request_id TEXT PRIMARY KEY, command_id TEXT NOT NULL REFERENCES commands(id));
 CREATE INDEX IF NOT EXISTS commands_history ON commands(created_at DESC,id DESC) WHERE status<>'queued';
+CREATE TABLE IF NOT EXISTS management_records (
+ id TEXT PRIMARY KEY, business_id TEXT NOT NULL, kind TEXT NOT NULL,
+ title TEXT NOT NULL, content TEXT NOT NULL, status TEXT NOT NULL,
+ due_at TEXT, revision INTEGER NOT NULL DEFAULT 1, created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS management_business_created ON management_records(business_id,created_at DESC,id DESC);

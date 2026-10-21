@@ -1,10 +1,7 @@
 import * as THREE from "three";
 import type { ProcessKey } from "./layout";
 
-const facilityPalette = {
-  machine: "#376b60", steel: "#79988a", roller: "#b3bda8", belt: "#303f38",
-  capacity: "#cfb06c", concrete: "#d2ddc8",
-} as const;
+export interface FacilityPalette { machine: string; steel: string; roller: string; belt: string; capacity: string; concrete: string }
 
 interface FacilityTools {
   key: ProcessKey;
@@ -12,6 +9,7 @@ interface FacilityTools {
   box: (w: number, h: number, d: number, color: string, x: number, y: number, z: number, fixed?: boolean) => THREE.Mesh;
   model: (name: string, parent: THREE.Object3D, width: number, depth: number, height?: number) => THREE.Object3D | null;
   material: (color: string) => THREE.Material;
+  palette: FacilityPalette;
 }
 export interface ProcessFacility {
   role: "production-line" | "inspection-gate" | "reserve-rack" | "loading-dock";
@@ -19,7 +17,7 @@ export interface ProcessFacility {
   scanner: THREE.Mesh | null;
 }
 /** Functional silhouettes remain readable when every HTML label is hidden. */
-export function buildProcessFacility({ key, group, box, model, material }: FacilityTools): ProcessFacility {
+export function buildProcessFacility({ key, group, box, model, material, palette: facilityPalette }: FacilityTools): ProcessFacility {
   const result: ProcessFacility = { role: "production-line", stockSlots: [], scanner: null };
   const modelAt = (name: string, x: number, z: number, w: number, d: number, h: number) => {
     const anchor = new THREE.Group(); anchor.position.set(x, 0, z); group.add(anchor);
@@ -52,7 +50,7 @@ export function buildProcessFacility({ key, group, box, model, material }: Facil
     box(4.4, 0.15, 1.7, facilityPalette.steel, 0, 1.02, 1.12);
     for (const x of [-1.8, 1.8]) box(0.22, 0.65, 1.45, facilityPalette.steel, x, 0.69, 1.12);
     for (const x of [-1.75, 0, 1.75]) box(0.26, 0.20, 0.12, facilityPalette.concrete, x, 3.45, 1.64);
-    const scan = new THREE.Mesh(new THREE.BoxGeometry(4.35, 0.065, 0.07), new THREE.MeshStandardMaterial({ color: "#42c4ab", emissive: "#329c87", emissiveIntensity: 0.5 }));
+    const scan = new THREE.Mesh(new THREE.BoxGeometry(4.35, 0.065, 0.07), new THREE.MeshStandardMaterial({ color: facilityPalette.machine, emissive: facilityPalette.machine, emissiveIntensity: 0.5 }));
     scan.position.set(0, 2.15, 1.54); scan.visible = false; group.add(scan); result.scanner = scan;
   } else if (key === "stock") {
     result.role = "reserve-rack";

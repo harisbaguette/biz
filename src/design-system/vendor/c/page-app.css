@@ -1,0 +1,87 @@
+/* ui/page-app — 관리 화면 틀.
+   본문 폭을 묶지 않는다 — 읽는 화면과 달리 표·수치 격자는 넓을수록 한눈에 들어온다.
+   대신 좌우 여백만 정한다. 좁은 화면에서는 메뉴가 본문 위로 접혀 올라가고,
+   1024px 부터 왼쪽에 세로로 서서 스크롤을 따라온다. */
+/* 열을 나누는 기준은 "화면 폭"이 아니라 "이 틀이 실제로 차지한 폭"이다(container).
+   화면 폭으로 재면, 넓은 화면의 좁은 상자 안에 이 틀을 넣었을 때 여러 열로 갈라져
+   본문이 한 글자 폭으로 짜부라진다 — 문서 미리보기에서 실제로 그렇게 됐다(실렌더 확인).
+   재는 숫자는 폭 규약 5단 그대로다. */
+.ui-page-app{
+  container:uipage / inline-size;
+  position:relative;
+  display:flex; flex-direction:column; min-height:100vh;
+  background:var(--ui-bg); color:var(--ui-fg); word-break:keep-all;
+}
+
+/* 본문 바로가기 — 메뉴 링크를 전부 지나치지 않고 바로 일하는 자리로 간다 */
+.ui-page-app__skip{
+  position:absolute; left:var(--ui-gap-3); top:var(--ui-gap-3); z-index:var(--ui-z-overlay);
+  display:inline-flex; align-items:center;
+  min-height:var(--ui-tap-min); padding:0 var(--ui-gap-4);
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+  background:var(--ui-surface); box-shadow:var(--ui-shadow-hard);
+  font-family:var(--ui-font-display); font-size:var(--ui-text-sm);
+  font-weight:var(--ui-weight-bold); text-decoration:none;
+  transform:translateY(-200%);
+}
+.ui-page-app .ui-page-app__skip{ color:var(--ui-fg); }
+.ui-page-app__skip:focus,
+.ui-page-app__skip:focus-visible{ transform:translateY(0); }
+
+.ui-page-app__wrap{
+  flex:1 1 auto; width:100%;
+  display:flex; flex-direction:column; gap:var(--ui-gap-4);
+  padding:var(--ui-gap-4);
+}
+/* 한 줄기로 세울 때는 메뉴가 한 폭을 다 쓴다(page-docs 와 같은 이유 — ui/sidebar 의 폭 해제가
+   "화면 폭" 기준이라 좁은 상자 안에서 풀리지 않는다). 넓어지면 격자 칸(15rem)이 폭을 잡는다. */
+.ui-page-app .ui-page-app__nav{ max-width:none; }
+.ui-page-app__col{ min-width:0; display:flex; flex-direction:column; gap:var(--ui-gap-4); }
+/* 묶음 이름은 눌러서 접었다 펴는 자리인데 글자 높이(21px)밖에 안 된다(실측).
+   부품 자체를 고치면 다른 화면까지 흔들리므로, 이 틀 안에서만 손가락 크기로 키운다. */
+.ui-page-app__nav .ui-sidebar__group-name{
+  display:flex; align-items:center; min-height:var(--ui-tap-min);
+}
+/* 지금 보고 있는 줄 — 옅은 액센트 바탕에 진한 액센트 글자를 얹으면 어두운 화면에서 1.49:1 까지
+   떨어진다(실측). 글자는 잉크색 그대로 두고, 굵기와 왼쪽 굵은 띠로 알린다(색만으로 알리지 않는다).
+   ui/sidebar 자체를 고치면 그 부품을 쓰는 다른 화면까지 흔들리므로 이 틀 안에서만 다시 못 박는다. */
+.ui-page-app__nav .ui-sidebar__link.is-current{
+  background:var(--ui-surface-2); color:var(--ui-fg);
+  font-weight:var(--ui-weight-bold);
+  border-inline-start-color:var(--ui-accent);
+}
+
+/* 위 막대 — 지금 어느 쪽인지 한 줄, 오른쪽에 가장 많이 누르는 단추 하나.
+   단추를 둘 이상 두지 않는다(1페이지 1기능) — 나머지는 본문 안에서 고르게 한다. */
+.ui-page-app__bar{
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
+  gap:var(--ui-gap-3); padding:var(--ui-gap-3) var(--ui-gap-4);
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+  background:var(--ui-surface); box-shadow:var(--ui-shadow-hard);
+}
+.ui-page-app__where{
+  margin:0; min-width:0;
+  font-family:var(--ui-font-display); font-size:var(--ui-text-lg);
+  font-weight:var(--ui-weight-bold); line-height:var(--ui-leading-tight);
+}
+.ui-page-app__acts{ display:flex; flex-wrap:wrap; align-items:center; gap:var(--ui-gap-3); }
+.ui-page-app__who{
+  font-family:var(--ui-font-mono); font-size:var(--ui-text-xs);
+}
+
+.ui-page-app__main{ min-width:0; }
+.ui-page-app__main > :first-child{ margin-top:0; }
+.ui-page-app__main > :last-child{ margin-bottom:0; }
+
+/* 글 본문 규칙(article p — 클래스1+요소2)이 부품 색을 이기므로 색만 무게를 한 칸 올린다(정본 §3) */
+.ui-page-app .ui-page-app__where{ color:var(--ui-fg); }
+.ui-page-app .ui-page-app__who{ color:var(--ui-fg-muted); }
+
+@container uipage (min-width:1024px){  /* --ui-bp-lg */
+  .ui-page-app__wrap{ padding:var(--ui-gap-6); }
+  .ui-page-app__wrap--menu{
+    display:grid; grid-template-columns:15rem minmax(0,1fr);
+    column-gap:var(--ui-gap-6); align-items:start;
+  }
+  .ui-page-app__nav{ position:sticky; top:var(--ui-gap-6); }
+}

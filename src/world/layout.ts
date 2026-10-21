@@ -7,8 +7,8 @@ export const processes: { key: ProcessKey; name: string; model: string }[] = [
 ];
 export type Position = readonly [number, number];
 export function siteLayout(width: number, height: number) {
-  const cols = width / height > 1.75 ? 7 : width / height < 0.82 ? 3 : 4;
-  const rows = Math.ceil(13 / cols);
+  const aspect = width / Math.max(height, 1);
+  const cols = aspect > 1.45 ? 7 : aspect > 1.1 ? 5 : aspect < 0.95 ? 3 : 4;
   const plots: Position[] = Array.from({ length: 13 }, (_, i) => [
     ((i % cols) - (cols - 1) / 2) * 7.8,
     Math.floor(i / cols) * 8.2,
@@ -17,11 +17,17 @@ export function siteLayout(width: number, height: number) {
   const facilities: Position[] = processCols === 2
     ? [[-4.6, -18.2], [4.6, -18.2], [4.6, -10], [-4.6, -10]]
     : processes.map((_, i) => [((i % processCols) - (processCols - 1) / 2) * 9.2, -10]);
+  if (cols === 3) {
+    // A compact portrait campus uses six real rows, without an empty process-only seventh row.
+    const cells: Position[] = Array.from({ length: 17 }, (_, i) => [((i % 3) - 1) * 7.8, Math.floor(i / 3) * 8.2]);
+    facilities.splice(0, 4, ...cells.slice(0, 4));
+    plots.splice(0, 13, ...cells.slice(4));
+  }
   const all = [...plots, ...facilities];
   const minX = Math.min(...all.map(p => p[0])) - 4.4;
   const maxX = Math.max(...all.map(p => p[0])) + 4.4;
   const minZ = Math.min(...all.map(p => p[1])) - 4.1;
-  const maxZ = (rows - 1) * 8.2 + 4.1;
+  const maxZ = Math.max(...all.map(p => p[1])) + 4.1;
   return { plots, facilities, minX, maxX, minZ, maxZ, cols };
 }
 // Default positions remain available to small read-only consumers.

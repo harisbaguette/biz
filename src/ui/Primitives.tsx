@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode, type ButtonHTMLAttributes } from "react";
+import { useEffect, useRef, type ReactNode, type ButtonHTMLAttributes, type MouseEventHandler } from "react";
 import { X, PackageOpen, ImageOff } from "lucide-react";
 export function IconButton({
   label,
@@ -10,12 +10,12 @@ export function IconButton({
 }: Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onClick"> & {
   label: string;
   children: ReactNode;
-  onClick: () => void;
+  onClick: MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
     <button
       {...rest}
-      className={"icon-button " + className}
+      className={"ui-icon-button icon-button " + className}
       type="button"
       aria-label={label}
       title={label}
@@ -59,7 +59,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className="modal"
+      className="ui-dialog modal"
       onCancel={(e) => {
         e.preventDefault();
         onClose();

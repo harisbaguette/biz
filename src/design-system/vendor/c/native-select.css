@@ -1,0 +1,16 @@
+/* ui/native-select — 목록은 브라우저에 맡기고, 닫혀 있을 때의 모습만 우리 언어로 */
+.ui-native-select{ position:relative; display:inline-block; width:100%; max-width:22rem; }
+.ui-native-select__el{
+  appearance:none; -webkit-appearance:none;
+  width:100%; min-height:var(--ui-h-md); padding:0 var(--ui-gap-8) 0 var(--ui-gap-3);
+  font-family:var(--ui-font-body); font-size:var(--ui-text-base); color:var(--ui-fg);
+  background:var(--ui-surface); cursor:pointer;
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+}
+.ui-native-select__el:focus-visible{ outline:var(--ui-ring-width) solid var(--ui-ring); outline-offset:var(--ui-ring-offset); }
+.ui-native-select__el[disabled]{ opacity:.55; cursor:not-allowed; background:var(--ui-surface-2); }
+.ui-native-select__arrow{
+  position:absolute; inset-inline-end:var(--ui-gap-3); top:50%; transform:translateY(-50%);
+  width:1.1em; height:1.1em; pointer-events:none; color:var(--ui-fg-muted);
+}
+.ui-native-select__arrow svg{ width:100%; height:100%; }

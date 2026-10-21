@@ -1,3 +1,4 @@
+import { management } from "./management.mjs";
 const json = (data, status = 200, extra = {}) =>
   new Response(JSON.stringify(data), {
     status,
@@ -416,6 +417,8 @@ export async function api(req, env) {
     if (path === "/api/session")
       return json({ authenticated: !!session, local });
     if (!session) return json({ error: "로그인이 필요합니다." }, 401);
+    if (path === "/api/management" || path.startsWith("/api/management/"))
+      return await management(req, url, db, { json, body, text, all, first, run, now });
     if (path === "/api/logout" && req.method === "POST") {
       await run(
         db,

@@ -128,8 +128,9 @@ test('실패한 예약의 원인을 보고 새 예약으로 복구하며 기존 
   await expect.poll(async () => (await DB.prepare('SELECT status FROM schedules WHERE id=?').bind('failed-review').first()).status).toBe('cancelled');
   await expect(page.locator('.timeline-item').filter({ hasText: '처리 실패' })).not.toBeVisible();
   await page.locator('summary').filter({ hasText: '완료·취소 기록' }).click();
-  await expect(page.locator('.history')).toContainText('실패 원인 재현');
-  await expect(page.locator('.history')).toContainText('취소');
+  const completedHistory = page.locator('.history').filter({ has: page.locator('summary').filter({ hasText: '완료·취소 기록' }) });
+  await expect(completedHistory).toContainText('실패 원인 재현');
+  await expect(completedHistory).toContainText('취소');
   await page.screenshot({ path: 'artifacts/verification/recovered-schedule.png' });
 });
 

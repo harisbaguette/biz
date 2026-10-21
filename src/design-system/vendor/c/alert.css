@@ -1,0 +1,25 @@
+/* ui/alert — 지면에 눌러 찍은 알림 띠 */
+.ui-alert{
+  display:flex; gap:var(--ui-gap-3); align-items:flex-start;
+  padding:var(--ui-gap-4);
+  border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius);
+  background:var(--ui-surface); color:var(--ui-fg);
+  font-size:var(--ui-text-base); line-height:var(--ui-leading);
+  margin:var(--ui-gap-5) 0;
+}
+.ui-alert__glyph{
+  flex:none; display:inline-flex; align-items:center; justify-content:center;
+  width:1.6em; height:1.6em; margin-top:.1em;
+  font-family:var(--ui-font-display); font-weight:800; font-size:var(--ui-text-sm);
+  border:var(--ui-border-thin) solid currentColor; border-radius:var(--ui-radius);
+}
+.ui-alert__title{ margin:0 0 var(--ui-gap-1); font-family:var(--ui-font-display); font-weight:800; }
+.ui-alert__body > :last-child{ margin-bottom:0; }
+.ui-alert--info{ background:var(--ui-info-soft); }
+.ui-alert--info .ui-alert__glyph{ color:var(--ui-info); }
+.ui-alert--success{ background:var(--ui-success-soft); }
+.ui-alert--success .ui-alert__glyph{ color:var(--ui-success); }
+.ui-alert--warning{ background:var(--ui-warning-soft); }
+.ui-alert--warning .ui-alert__glyph{ color:var(--ui-warning); }
+.ui-alert--danger{ background:var(--ui-danger-soft); }
+.ui-alert--danger .ui-alert__glyph{ color:var(--ui-danger); }

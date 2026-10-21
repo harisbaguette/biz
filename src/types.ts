@@ -26,6 +26,8 @@ export interface Account {
   status: string;
   message: string;
   checkedAt: string | null;
+  lastAttemptAt?: string | null;
+  lastVerifiedAt?: string | null;
   nextCheckAt: string | null;
   running: boolean;
 }
@@ -84,6 +86,7 @@ export interface Snapshot {
     runLockActive?: boolean | null;
     pollIntervalSeconds?: number;
     lanes: Record<string, Lane>;
+    scan?: { pending: number[]; requestedAt?: string | null; completedAt?: string | null; reason?: string };
   };
 }
 export interface Schedule {
@@ -124,6 +127,7 @@ export interface WorldData {
   scheduleHistory?: { total: number; hasMore: boolean; nextCursor: string | null };
 }
 export type Panel =
+  | "management"
   | "account"
   | "accounts"
   | "inventory"

@@ -22,7 +22,7 @@ export default defineConfig({
     ],
   ],
   use: {
-    baseURL: "http://127.0.0.1:4317",
+    baseURL: process.env.BIZ_TEST_ORIGIN || "http://127.0.0.1:4317",
     headless: true,
     browserName: webkit ? "webkit" : "chromium",
     launchOptions: webkit

@@ -109,6 +109,8 @@ def collect(root: Path, runtime: Path):
             'reviewBasis': item['review_day_basis'], 'capacity': capacities.get(item['account']),
             'status': status.get('status', 'waiting'), 'message': status.get('message', ''),
             'checkedAt': status.get('checked_at'), 'nextCheckAt': status.get('next_check_at') or status.get('retry_at'),
+            'lastAttemptAt': status.get('last_attempt_at') or status.get('checked_at'),
+            'lastVerifiedAt': status.get('last_verified_at'),
             'running': auto.get('running_account') == n,
         })
     lane_data = {}
@@ -133,6 +135,10 @@ def collect(root: Path, runtime: Path):
                     'lastRunAt': auto.get('last_run_at'), 'lastPollAt': auto.get('last_poll_at'),
                     'nextAt': auto.get('next_at'), 'runningAccount': auto.get('running_account'),
                     'intervalSeconds': auto_config.get('interval_seconds', 1800), 'lanes': lane_data,
+                    'scan': {'pending': auto.get('scan', {}).get('pending', []),
+                             'requestedAt': auto.get('scan', {}).get('requested_at'),
+                             'completedAt': auto.get('scan', {}).get('completed_at'),
+                             'reason': auto.get('scan', {}).get('reason', '')},
                     **uploader_observation(runtime)},
                 'assets': safe_assets}
     return json.loads(json.dumps(snapshot, default=str, ensure_ascii=False)), asset_files

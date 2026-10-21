@@ -196,7 +196,7 @@ test("지시는 확인 뒤에만 전달되며 운영 원본에 닿지 않는다"
 test("연결이 오래되면 상태를 밝히고 지시를 막는다", async ({ page }) => {
   await isolate(page, { stale: true });
   await expect(
-    page.getByRole("button", { name: "작업기 연결 확인" }),
+    page.locator(".attention").filter({ hasText: "작업기 연결 확인" }),
   ).toBeVisible();
   await page.locator('[data-account="1"]').click();
   await expect(

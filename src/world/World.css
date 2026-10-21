@@ -1,56 +1,65 @@
-.world.business-world { --marker-ink:#244d40; --marker-paper:#f5f8ef; --marker-border:#a2b7a6; touch-action:none; }
-.world.business-world .world-markers { z-index:2; }
+.world.business-world { position:absolute; inset:0; width:100%; height:100%; overflow:hidden; touch-action:none; background:var(--ui-bg); color:var(--ui-fg); font-family:var(--ui-font-body); }
+.world.business-world canvas { display:block; width:100%; height:100%; outline:none; touch-action:none; }
+.world.business-world .world-markers { position:absolute; inset:0; z-index:2; pointer-events:none; }
 .world.business-world .world-leaders { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; z-index:1; overflow:visible; }
-.world.business-world .world-leaders line { stroke:#3e6455; stroke-width:1; vector-effect:non-scaling-stroke; }
-.world.business-world .plot-label { width:74px; min-width:74px; height:44px; padding:4px 6px; border-radius:7px; border:1px solid var(--marker-border); color:var(--marker-ink); background:#f5f8efed; box-shadow:0 2px 4px #183e3419; gap:0; flex-direction:column; line-height:1.1; transition:background .12s; touch-action:none; overflow:visible; }
-.world.business-world .plot-label .account-marker-top { width:100%; display:flex; align-items:center; justify-content:center; gap:5px; height:17px; }
-.world.business-world .plot-label .account-number { font-size:12px; font-weight:800; }
-.world.business-world .plot-label .account-alias { font-size:11px; font-weight:650; white-space:nowrap; line-height:15px; }
-.world.business-world .plot-label .account-state-dot { width:5px; height:5px; border-radius:50%; background:#527d60; }
-.world.business-world .plot-label .account-miniature { width:18px; height:22px; border-radius:3px; position:absolute; left:3px; top:10px; object-fit:contain; background:#fff; }
-.world.business-world .plot-label:has(.account-miniature) { padding-left:23px; }
-.world.business-world .plot-label:has(.account-miniature) .account-marker-top { gap:2px; }
-.world.business-world .plot-label.danger { border-color:#b4644e; background:#fff2e6; color:#873e2f; }
-.world.business-world .plot-label.warning { border-color:#c59a47; background:#fff6de; color:#75531a; }
-.world.business-world .plot-label.active { border-color:#378d78; }
-.world.business-world .plot-label.unknown { color:#53685d; background:#e4eae2; }
-.world.business-world .plot-label.has-command { border-style:dashed; border-width:2px; }
-.world.business-world .plot-label.selected,.world.business-world .plot-label:hover { background:#244d40; color:#fff; border-color:#173e31; z-index:4; }
-.world.business-world .plot-label.selected .account-state-dot,.world.business-world .plot-label:hover .account-state-dot { background:#d4e6ca; }
-.world.business-world .plot-label .account-layer-value { position:absolute; right:-5px; top:-9px; min-width:23px; padding:2px 4px; border:1px solid #5c7967; border-radius:4px; background:#244d40; color:#fff; font-size:10px; line-height:14px; }
-.world.business-world .plot-tooltip { display:none; bottom:calc(100% + 5px); border-radius:5px; padding:5px 7px; font-size:11px; background:#244d40; opacity:1; }
-.world.business-world .plot-label:hover .plot-tooltip,.world.business-world .plot-label:focus-visible .plot-tooltip { display:block; }
-.world.business-world .process-label { position:absolute; left:0; top:0; width:96px; min-height:46px; border:1px solid #608c77; border-radius:7px; background:#e9f1e6f5; color:#244d40; padding:4px 5px; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 2px 5px #254e3520; pointer-events:auto; visibility:hidden; touch-action:none; line-height:1.15; }
-.world.business-world .process-label>span { display:flex; gap:4px; align-items:center; }
-.world.business-world .process-label strong { font-size:12px; }
-.world.business-world .process-label small { font-size:10px; margin-top:3px; white-space:nowrap; }
-.world.business-world .process-label.warning { border-color:#b58c41; color:#74501c; background:#fff3d9f5; }
-.world.business-world .process-label.active { border-color:#2e8673; background:#d7eee2f5; }
-.world.business-world .process-label.selected,.world.business-world .process-label:hover { color:#fff; background:#244d40; }
-.world.business-world .process-live { position:absolute; right:3px; top:3px; }
-.world.business-world .world-retry { display:flex; align-items:center; gap:7px; border:1px solid #8da792; background:#f5f8ef; padding:10px 14px; min-height:44px; border-radius:8px; margin:12px auto; }
-.world.business-world .world-fallback { z-index:5; touch-action:pan-y; overflow:auto; max-height:calc(100% - 40px); }
-.world.business-world .world-fallback button { touch-action:manipulation; }
-.world.business-world .plot-label:focus-visible,.world.business-world .process-label:focus-visible { outline:3px solid #234f40; outline-offset:3px; }
-@media (max-width:540px) { .world.business-world .plot-label { width:58px; min-width:58px; } .world.business-world .process-label { width:84px; } .world.business-world .process-label strong { font-size:11px; } .world.business-world .account-miniature { display:none; } .world.business-world .plot-label:has(.account-miniature) { padding-left:6px; } }
-@media (max-height:500px) { .world.business-world .plot-label { width:58px; min-width:58px; } .world.business-world .process-label { width:86px; } .world.business-world .account-miniature { display:none; } .world.business-world .plot-label:has(.account-miniature) { padding-left:6px; } }
-/* Normal facilities keep a full touch target while exposing the miniature underneath. */
-.world.business-world .plot-label { width:58px; min-width:58px; height:44px; padding:2px; flex-direction:row; gap:3px; background:transparent; border-color:transparent; box-shadow:none; text-shadow:0 1px 2px #f7fbf0,0 0 4px #f7fbf0; }
-.world.business-world .plot-label .account-marker-top { width:auto; gap:3px; height:auto; }
-.world.business-world .plot-label .account-number { font-size:11px; }
-.world.business-world .plot-label .account-alias { display:none; font-size:11px; }
-.world.business-world .plot-label .account-miniature { display:block; position:static; width:22px; height:26px; object-fit:contain; border-radius:2px; background:transparent; }
-.world.business-world .plot-label:has(.account-miniature) { padding-left:2px; }
-.world.business-world .plot-label.warning,.world.business-world .plot-label.danger,.world.business-world .plot-label.selected,.world.business-world .plot-label.has-command { flex-wrap:wrap; gap:0 2px; text-shadow:none; }
-.world.business-world .plot-label.warning { background:#fff5dbe8; border-color:#c59a47; }
-.world.business-world .plot-label.danger { background:#fff0e4e8; border-color:#b4644e; }
-.world.business-world .plot-label.selected,.world.business-world .plot-label:hover { background:#244d40; color:#fff; border-color:#244d40; text-shadow:none; }
-.world.business-world .plot-label.warning .account-alias,.world.business-world .plot-label.danger .account-alias,.world.business-world .plot-label.selected .account-alias,.world.business-world .plot-label.has-command .account-alias { display:block; order:3; flex-basis:100%; height:12px; line-height:12px; }
-.world.business-world .plot-label:hover:not(.warning):not(.danger):not(.selected) .account-alias,.world.business-world .plot-label:focus-visible:not(.warning):not(.danger):not(.selected) .account-alias { display:block; position:absolute; top:calc(100% + 2px); left:50%; transform:translateX(-50%); color:#fff; background:#244d40; padding:3px 5px; border-radius:3px; pointer-events:none; }
-.world.business-world .process-label,.world.business-world .process-label.warning,.world.business-world .process-label.active { background:transparent; border-color:transparent; box-shadow:none; text-shadow:0 1px 2px #f7fbf0,0 0 4px #f7fbf0; }
-.world.business-world .process-label strong,.world.business-world .process-label small { font-size:11px; }
-.world.business-world .process-label.selected,.world.business-world .process-label:hover { background:#244d40; text-shadow:none; color:#fff; }
+.world.business-world .world-leaders line { stroke:var(--ui-line); stroke-width:2; vector-effect:non-scaling-stroke; }
 .world.business-world .world-leaders line[data-important="false"] { display:none; }
-.world.business-world .plot-label .account-number { color:inherit; }
+.world.business-world .plot-label { position:absolute; left:0; top:0; width:44px; min-width:44px; height:44px; min-height:44px; padding:0; display:flex; align-items:center; justify-content:center; border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius); background:var(--ui-surface); color:var(--ui-fg); box-shadow:var(--ui-shadow-hard); pointer-events:auto; visibility:hidden; touch-action:none; transition:background var(--ui-step),color var(--ui-step); }
+.world.business-world .plot-label .account-marker-top { display:flex; align-items:center; justify-content:center; gap:2px; }
+.world.business-world .plot-label .account-number { color:inherit; min-width:0; font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); font-variant-numeric:tabular-nums; line-height:1; }
+.world.business-world .plot-label .account-state-dot { width:4px; height:4px; background:currentColor; }
+.world.business-world .plot-label .account-alias,.world.business-world .plot-label .account-miniature,.world.business-world .plot-label .account-layer-value { display:none; }
+.world.business-world .plot-label.danger,.world.business-world .plot-label.warning { background:var(--ui-fg); color:var(--ui-surface); }
+.world.business-world .plot-label.active { border-color:var(--ui-accent); color:var(--ui-accent); }
+.world.business-world .plot-label.unknown { color:var(--ui-fg-muted); background:var(--ui-surface-2); }
+.world.business-world .plot-label.selected,.world.business-world .plot-label:hover { background:var(--ui-accent); border-color:var(--ui-line); color:var(--ui-on-accent); z-index:4; }
+.world.business-world .plot-label.has-command::after { content:""; width:6px; height:6px; background:var(--ui-accent); position:absolute; right:-4px; top:-4px; border:var(--ui-border) solid var(--ui-line); }
+.world.business-world .plot-tooltip { display:none; position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); padding:var(--ui-gap-2) var(--ui-gap-3); white-space:nowrap; font-size:var(--ui-text-sm); line-height:var(--ui-leading-tight); font-weight:var(--ui-weight-medium); border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius); background:var(--ui-surface); color:var(--ui-fg); box-shadow:var(--ui-shadow-hard); pointer-events:none; }
+.world.business-world .plot-label:hover .plot-tooltip,.world.business-world .plot-label:focus-visible .plot-tooltip { display:block; }
+.world.business-world .process-label { position:absolute; left:0; top:0; width:max-content; min-width:88px; height:44px; min-height:44px; padding:0 var(--ui-gap-2); display:flex; align-items:center; justify-content:center; gap:var(--ui-gap-1); color:var(--ui-fg); background:var(--ui-surface); border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius); box-shadow:var(--ui-shadow-hard); pointer-events:auto; visibility:hidden; touch-action:none; }
+.world.business-world .process-label>span { display:flex; align-items:center; gap:var(--ui-gap-1); }
+.world.business-world .process-label strong { font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); line-height:1.2; white-space:nowrap; }
+.world.business-world .process-label small { display:none; }
+.world.business-world .process-label.warning { border-color:var(--ui-line); }
+.world.business-world .process-label.warning::before { content:"!"; font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); }
+.world.business-world .process-label.active,.world.business-world .process-label.selected,.world.business-world .process-label:hover { background:var(--ui-accent); color:var(--ui-on-accent); }
+.world.business-world .process-live { width:14px; height:14px; }
+.world.business-world .plot-label:focus-visible,.world.business-world .process-label:focus-visible { outline:var(--ui-ring-width) solid var(--ui-ring); outline-offset:var(--ui-ring-offset); box-shadow:var(--ui-ring-halo); }
+.world.business-world .world-loading { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; flex-direction:column; gap:var(--ui-gap-3); background:var(--ui-bg); font-size:var(--ui-text-base); z-index:5; }
+.world.business-world .world-fallback { position:absolute; inset:var(--ui-gap-4); overflow:auto; z-index:5; padding:var(--ui-gap-4); color:var(--ui-fg); background:var(--ui-surface); border:var(--ui-border) solid var(--ui-line); touch-action:pan-y; }
+.world.business-world .world-fallback h2 { font-size:var(--ui-text-xl); }
+.world.business-world .world-fallback p { margin:var(--ui-gap-2) 0; font-size:var(--ui-text-base); }
+.world.business-world .world-retry,.world.business-world .world-model-retry { min-height:44px; display:flex; align-items:center; gap:var(--ui-gap-2); padding:0 var(--ui-gap-4); border:var(--ui-border) solid var(--ui-line); border-radius:var(--ui-radius); background:var(--ui-surface); color:var(--ui-fg); box-shadow:var(--ui-shadow-hard); font-size:var(--ui-text-base); touch-action:manipulation; }
+.world.business-world .world-model-retry { position:absolute; bottom:var(--ui-gap-4); left:var(--ui-gap-4); z-index:5; }
+.world.business-world .fallback-plots { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:var(--ui-gap-2); margin-top:var(--ui-gap-4); }
+.world.business-world .fallback-plots button { display:flex; align-items:center; gap:var(--ui-gap-2); min-height:52px; padding:var(--ui-gap-2); border:var(--ui-border) solid var(--ui-line); background:var(--ui-surface); color:var(--ui-fg); font-size:var(--ui-text-base); text-align:left; }
+@media (max-width:480px) { .world.business-world .process-label { min-width:80px; padding:0 var(--ui-gap-1); } .world.business-world .process-label strong { font-size:var(--ui-text-sm); } .world.business-world .process-label>span { gap:2px; } .world.business-world .fallback-plots { grid-template-columns:1fr; } }
+/* A 44px input surface can carry a much smaller physical nameplate. */
+.world.business-world .plot-label { border:0; background:transparent; box-shadow:none; }
+.world.business-world .plot-label .account-marker-top { min-width:26px; height:26px; padding:0 2px; gap:1px; border:var(--ui-border) solid var(--ui-line); background:var(--ui-surface); box-shadow:var(--ui-shadow-hard); color:var(--ui-fg); }
+.world.business-world .plot-label .account-state-dot { display:none; }
+.world.business-world .plot-label .account-number { font-size:var(--ui-text-sm); }
+.world.business-world .plot-label.danger,.world.business-world .plot-label.warning,.world.business-world .plot-label.active,.world.business-world .plot-label.unknown,.world.business-world .plot-label.selected,.world.business-world .plot-label:hover { border:0; background:transparent; color:var(--ui-fg); }
+.world.business-world .plot-label.danger .account-marker-top,.world.business-world .plot-label.warning .account-marker-top { min-width:34px; height:32px; background:var(--ui-fg); color:var(--ui-surface); }
+.world.business-world .plot-label.active .account-marker-top,.world.business-world .plot-label.selected .account-marker-top,.world.business-world .plot-label:hover .account-marker-top { background:var(--ui-accent); color:var(--ui-on-accent); }
+.world.business-world .plot-label.selected .account-marker-top { width:40px; height:40px; }
+.world.business-world .plot-label.unknown .account-marker-top { color:var(--ui-fg-muted); background:var(--ui-surface-2); }
+.world.business-world .process-label,.world.business-world .process-label.active,.world.business-world .process-label.selected,.world.business-world .process-label:hover { border:0; background:transparent; box-shadow:none; }
+.world.business-world .process-label>span { padding:3px 4px; border:var(--ui-border) solid var(--ui-line); background:var(--ui-surface); color:var(--ui-fg); box-shadow:var(--ui-shadow-hard); }
+.world.business-world .process-label strong { font-size:var(--ui-text-sm); }
+.world.business-world .process-label.active>span,.world.business-world .process-label.selected>span,.world.business-world .process-label:hover>span { background:var(--ui-accent); color:var(--ui-on-accent); }
+.world.business-world .process-label.warning::before { content:none; }
+.world.business-world .process-live { color:var(--ui-fg); background:var(--ui-surface); }
+.world.business-world[data-layer="stock"] .plot-label,.world.business-world[data-layer="review"] .plot-label { flex-direction:column; gap:0; }
+.world.business-world[data-layer="stock"] .plot-label .account-marker-top,.world.business-world[data-layer="review"] .plot-label .account-marker-top { box-shadow:none; height:20px; min-height:20px; border-bottom:0; }
+.world.business-world[data-layer="stock"] .plot-label .account-number,.world.business-world[data-layer="review"] .plot-label .account-number { font-size:var(--ui-text-xs); }
+.world.business-world[data-layer="stock"] .account-layer-value,.world.business-world[data-layer="review"] .account-layer-value { display:block; min-width:34px; padding:0 2px; height:24px; line-height:20px; font-size:var(--ui-text-base); font-weight:var(--ui-weight-bold); background:var(--ui-surface); color:var(--ui-fg); border:var(--ui-border) solid var(--ui-line); box-shadow:var(--ui-shadow-hard); }
 
-.world.business-world .world-model-retry { position:absolute; left:16px; bottom:110px; z-index:5; min-height:44px; border:1px solid #b58c41; border-radius:7px; padding:6px 10px; display:flex; align-items:center; gap:6px; color:#74501c; background:#fff3d9; font-size:11px; }
+.world.business-world[data-layer="stock"] .plot-label .account-marker-top,.world.business-world[data-layer="review"] .plot-label .account-marker-top,.world.business-world[data-layer="stock"] .account-layer-value,.world.business-world[data-layer="review"] .account-layer-value { width:44px; min-width:44px; }
+
+.world.business-world[data-detailed="true"] .plot-label { width:max-content; min-width:44px; gap:4px; }
+.world.business-world[data-detailed="true"] .plot-label .account-alias { display:block; padding:2px 4px; color:var(--ui-fg); background:var(--ui-surface); font-size:var(--ui-text-sm); font-weight:var(--ui-weight-medium); line-height:var(--ui-leading-tight); white-space:nowrap; }
+.world.business-world[data-detailed="true"][data-layer="stock"] .plot-label,.world.business-world[data-detailed="true"][data-layer="review"] .plot-label { display:grid; grid-template-columns:44px max-content; grid-template-rows:22px 22px; gap:0 4px; }
+.world.business-world[data-detailed="true"][data-layer="stock"] .account-marker-top,.world.business-world[data-detailed="true"][data-layer="review"] .account-marker-top { grid-column:1; grid-row:1; }
+.world.business-world[data-detailed="true"][data-layer="stock"] .account-alias,.world.business-world[data-detailed="true"][data-layer="review"] .account-alias { grid-column:2; grid-row:1 / span 2; }
+.world.business-world[data-detailed="true"][data-layer="stock"] .account-layer-value,.world.business-world[data-detailed="true"][data-layer="review"] .account-layer-value { grid-column:1; grid-row:2; height:22px; line-height:18px; }

@@ -1,0 +1,105 @@
+/* ======================================================================
+   Inkpress UI — 씨앗 값(seed)
+
+   무엇: assets/css/ui/tokens.css 가 밖에서 빌려 쓰는 값의 기본값 한 벌(딸린 값 포함).
+
+   이 저장소에서는 **쓰이지 않는다.** custom.css 가 같은 값을 이미 갖고 있고,
+   스타일 조립(partials/ui/styles.html)도 이 파일을 넣지 않는다.
+
+   언제 쓰나: 부품을 다른 프로젝트로 꺼내 갈 때(scripts/ui_add.py 가 항상 함께 복사한다).
+   custom.css 없이 부품만 가져가면 색·간격·글꼴이 통째로 사라지므로,
+   가져간 쪽에서 이 파일을 UI 스타일보다 **먼저** 불러 그 구멍을 메운다.
+
+   자동 생성물 — 값을 고칠 땐 custom.css 의 :root 를 고치고 scripts/ui_seed.py 로 다시 뽑아라.
+   ====================================================================== */
+
+:root {
+  --c-accent: #107049;
+  --c-accent-soft: #E4EFE9;
+  --c-accent-strong: #0B5537;
+  --c-canvas: #FFFFFF;
+  --c-cat-1: #2F5DA8;
+  --c-cat-2: #944170;
+  --c-cat-3: #B12A33;
+  --c-cat-4: #895113;
+  --c-danger: #B32626;
+  --c-danger-soft: rgba(179,38,38,.08);
+  --c-faint: #5A6067;
+  --c-ink: #101214;
+  --c-ink-soft: #383C40;
+  --c-muted: #4B5057;
+  --c-on-accent: #FFFFFF;
+  --c-overlay-backdrop: rgba(var(--shadow-color),.45);
+  --c-paper: #FFFFFF;
+  --c-scrim: rgba(16,18,20,.45);
+  --c-success: #0F6A46;
+  --c-success-soft: rgba(15,106,70,.08);
+  --c-surface: #F1F3F5;
+  --c-warning: #8A5410;
+  --c-warning-soft: rgba(138,84,16,.10);
+  --font-body: -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  --font-display: 'NanumSquare Neo',-apple-system,'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --shadow-color: 0,0,0;
+  --space-1: 0.25rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+}
+
+/* 어두운 화면 */
+:root[data-theme="dark"] {
+  --c-accent: #3FB07E;
+  --c-accent-soft: rgba(63, 176, 126, .14);
+  --c-accent-strong: #6FD3A0;
+  --c-canvas: #0D0F11;
+  --c-cat-1: #94AEE4;
+  --c-cat-2: #D89CBC;
+  --c-cat-3: #E9979D;
+  --c-cat-4: #D9A465;
+  --c-danger: #EE7B72;
+  --c-danger-soft: rgba(238, 123, 114, .12);
+  --c-faint: #959CA3;
+  --c-ink: #E7E9EB;
+  --c-ink-soft: #B2B8BE;
+  --c-muted: #A3AAB1;
+  --c-on-accent: #0E1412;
+  --c-paper: #16191C;
+  --c-scrim: rgba(0, 0, 0, .62);
+  --c-success: #34D399;
+  --c-success-soft: rgba(52, 211, 153, .10);
+  --c-surface: #21252A;
+  --c-warning: #E8B04A;
+  --c-warning-soft: rgba(232, 176, 74, .12);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --c-accent: #3FB07E;
+    --c-accent-soft: rgba(63, 176, 126, .14);
+    --c-accent-strong: #6FD3A0;
+    --c-canvas: #0D0F11;
+    --c-cat-1: #94AEE4;
+    --c-cat-2: #D89CBC;
+    --c-cat-3: #E9979D;
+    --c-cat-4: #D9A465;
+    --c-danger: #EE7B72;
+    --c-danger-soft: rgba(238, 123, 114, .12);
+    --c-faint: #959CA3;
+    --c-ink: #E7E9EB;
+    --c-ink-soft: #B2B8BE;
+    --c-muted: #A3AAB1;
+    --c-on-accent: #0E1412;
+    --c-paper: #16191C;
+    --c-scrim: rgba(0, 0, 0, .62);
+    --c-success: #34D399;
+    --c-success-soft: rgba(52, 211, 153, .10);
+    --c-surface: #21252A;
+    --c-warning: #E8B04A;
+    --c-warning-soft: rgba(232, 176, 74, .12);
+  }
+}

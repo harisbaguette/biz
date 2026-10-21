@@ -44,6 +44,16 @@ test('사람이 처리할 상태와 알 수 없는 상태는 정상으로 숨기
     assert.equal(severity({ status: state, bound: true, running: false }), 'warning');
   }
 });
+test('지난 확인 예정은 순회 대기로 표시하고 정상 대기를 오류로 승격하지 않는다', () => {
+  const a = { status: 'review_scheduled', bound: true, running: false, nextCheckAt: new Date(Date.now() - 60000).toISOString() };
+  assert.equal(status(a), '순회 대기');
+  assert.equal(severity(a), 'normal');
+  assert.equal(status({ ...a, nextCheckAt: new Date(Date.now() + 60000).toISOString() }), '확인 예약');
+  assert.equal(status({ ...a, running: true }), '실행 감지');
+  assert.equal(status({ ...a, status: 'blocked', running: true }), '자동 확인 미완료 · 실행 감지');
+  assert.equal(status({ ...a, status: 'login_required', running: true }), '로그인 필요 · 실행 감지');
+  assert.equal(severity({ ...a, status: 'blocked', running: true }), 'danger');
+});
 test('ready 원본 상태만으로 제출 가능이라고 표시하지 않는다', () => {
   assert.equal(assetStatus({ state: 'ready', eligible: false }), '제출 제외');
   assert.equal(assetStatus({ state: 'ready', eligible: true }), '제출 가능');

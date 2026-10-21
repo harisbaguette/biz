@@ -17,3 +17,5 @@
 일본 3D屋さん은 웹 원본 재배포 권한이 확정되지 않았고 PLATEAU는 실제 도시 데이터여서 이번 의미 기반 단지의 재료로 선정하지 않았다. KayKit City Builder Bits와 Kenney 산업 모델을 비교하여 산업 시설 구성과 일관된 파일 규격에 맞는 Kenney를 선택했다.
 
 사용자 X 영상, Cities: Skylines II와 shapez 2 이미지는 화면 구성 연구에만 사용했다. 앱 에셋에 포함하지 않았다. 실제 참고와 적용 원칙은 `docs/PLAN.md`에 있다.
+
+2026-10-21 UI 재설계: 사용자가 지정한 `hong-designsystem/assets/css/ui`의 Inkpress UI 원본 CSS 23개를 `src/design-system/vendor/`에 연결했다. 출처와 파일별 해시는 해당 폴더의 `manifest.json`에 있다. `scripts/sync-design-system.mjs`로 재현하며 원본 디자인 시스템은 수정하지 않는다. 화면 구조·목록·입력·시트·모달을 이 부품의 실제 HTML과 CSS에 맞췄다. 3D는 기존 Kenney 라이선스 에셋을 재사용하고, 카메라·배치·접지·표식·재고 표현을 개선했다.

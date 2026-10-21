@@ -18,14 +18,9 @@ interface Props {
   onInspectProcess?: (key: ProcessKey) => void; activeProcess?: ProcessKey | null;
   commands?: Command[]; thumbnails?: string[];
 }
-const palette = { normal: 0x527d60, active: 0x329e91, warning: 0xc58c28, danger: 0xb95b44, unknown: 0x8c9d94 };
 const modelNames = Array.from({ length: 13 }, (_, i) => "building-" + String.fromCharCode(97 + i));
-const aliases: Record<string, string> = {
-  gouache: "구아슈", people_bold_editorial: "인물", watercolor: "수채화", flat: "플랫", line: "라인",
-};
-function alias(a: Account) {
-  return aliases[a.style] || a.name.replace(/스토리북|일러스트|스타일|편집|미니멀|빈티지/g, "").trim().replace(/\s+/g, "").slice(0, 4) || a.style.slice(0, 4);
-}
+const styleLabels: Record<string, string> = { gouache: "구아슈", people_bold_editorial: "굵은선", people_minimal_guide: "안내인물", people_fine_educational: "가는펜", people_retro_editorial: "레트로", people_clear_line: "교재선화", people_chunky_cartoon: "잉크카툰", people_relaxed_doodle: "둥근낙서", people_graphic_cel: "면채색", people_pencil_print: "색연필", people_loose_watercolor: "펜수채", people_marker_wash: "마커수채", people_warm_storybook: "빈티지" };
+
 function pending(a: Account, commands: Command[] = []) {
   return commands.some(c => ["pending", "queued", "running"].includes(c.status) && String(c.payload.accountId ?? c.payload.account_id ?? "") === a.id);
 }
@@ -50,7 +45,7 @@ function processState(key: ProcessKey, snapshot: Snapshot, stale: boolean) {
   if (key === "stock") {
     const ready = snapshot.accounts.reduce((v, a) => v + a.ready, 0);
     const target = snapshot.accounts.reduce((v, a) => v + a.target, 0);
-    return { label: `${n(ready)} / ${n(target)}`, tone: ready >= target ? "normal" : "warning", active: false };
+    return { label: `${n(ready)} / ${n(target)}`, tone: "normal", active: false };
   }
   const waiting = snapshot.accounts.reduce((v, a) => v + (a.counts.submitted || 0), 0);
   const issues = snapshot.accounts.filter(a => severity(a) === "danger" || severity(a) === "warning").length;
@@ -73,7 +68,7 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
   const host = useRef<HTMLDivElement>(null), propsRef = useRef(props), controller = useRef<WorldHandle | null>(null);
   const markers = useRef(new Map<string, HTMLButtonElement>()), leaders = useRef(new Map<string, SVGLineElement>());
   const [error, setError] = useState<string | null>(null), [loaded, setLoaded] = useState(false), [attempt, setAttempt] = useState(0);
-  const [mode, setMode] = useState(0), [missingModels, setMissingModels] = useState(0);
+  const [mode, setMode] = useState(0), [missingModels, setMissingModels] = useState(0), [appearance, setAppearance] = useState(0);
   propsRef.current = props;
   useImperativeHandle(ref, () => ({ zoom: d => controller.current?.zoom(d), reset: () => controller.current?.reset(), rotate: () => controller.current?.rotate(), focus: id => controller.current?.focus(id) }), []);
   useEffect(() => {
@@ -86,28 +81,36 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
     catch { setError("3D 화면을 시작하지 못했습니다."); propsRef.current.onReady(); return; }
     renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
     renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.shadowMap.autoUpdate = false;
-    renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.12;
+    renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 1.05;
     renderer.domElement.setAttribute("aria-label", "미리캔버스 사업 단지. 시설을 선택하거나 드래그하여 이동합니다.");
     renderer.domElement.setAttribute("role", "img"); element.prepend(renderer.domElement);
-    const scene = new THREE.Scene(); scene.background = new THREE.Color("#dce6e0");
+    const css = getComputedStyle(element);
+    const token = (name: string, fallback: string) => css.getPropertyValue(name).trim() || fallback;
+    const ui = { canvas: token("--ui-bg", "#ffffff"), paper: token("--ui-surface", "#ffffff"), surface: token("--ui-surface-2", "#f1f3f5"), ink: token("--ui-fg", "#101214"), muted: token("--ui-fg-muted", "#4b5057"), accent: token("--ui-accent", "#107049"), accentSoft: token("--ui-accent-soft", "#e4efe9") };
+    // UI surfaces reverse in dark mode; physical light and material albedo must not.
+    const dark = new THREE.Color(ui.canvas).getHSL({ h: 0, s: 0, l: 0 }).l < 0.3;
+    const mineral = (amount: number) => "#" + new THREE.Color(ui.canvas).lerp(new THREE.Color(ui.ink), amount).getHexString();
+    const theme = dark ? { ...ui, paper: mineral(0.28), surface: mineral(0.13), muted: mineral(0.045), ink: ui.canvas } : ui;
+    const daylight = "#ffffff", groundBounce = "#4b5057";
+    const scene = new THREE.Scene(); scene.background = new THREE.Color(ui.canvas);
     const layout = siteLayout(element.clientWidth, element.clientHeight);
     const camera = new THREE.OrthographicCamera(-50, 50, 50, -50, 0.1, 300);
-    const initialDirection = layout.cols === 7 ? new THREE.Vector3(0, 62, 76) : layout.cols === 3 ? new THREE.Vector3(12, 83, 44) : new THREE.Vector3(32, 60, 40);
+    const initialDirection = layout.cols === 3 ? new THREE.Vector3(0, 52, 80) : new THREE.Vector3(18, 65, 70);
     camera.position.copy(initialDirection);
     // The containing element owns both labels and canvas: a drag can begin on either.
     const controls = new OrbitControls(camera, element);
     controls.enableDamping = true; controls.dampingFactor = 0.12;
-    controls.maxPolarAngle = Math.PI * 0.40; controls.minPolarAngle = Math.PI * 0.18;
+    controls.maxPolarAngle = Math.PI * 0.40; controls.minPolarAngle = Math.PI * 0.13;
     controls.minZoom = 0.65; controls.maxZoom = 3.8; controls.screenSpacePanning = true;
     controls.mouseButtons = { LEFT: THREE.MOUSE.PAN, MIDDLE: THREE.MOUSE.DOLLY, RIGHT: THREE.MOUSE.ROTATE };
     controls.touches = { ONE: THREE.TOUCH.PAN, TWO: THREE.TOUCH.DOLLY_ROTATE };
     controls.addEventListener("change", () => { dirty = true; });
     controls.addEventListener("start", () => { targetPosition = null; targetZoom = null; overview = false; });
-    scene.add(new THREE.HemisphereLight("#fafff4", "#667e73", 2.05));
-    const sun = new THREE.DirectionalLight("#fff4df", 3.0); sun.position.set(-26, 45, 22); sun.castShadow = true;
+    scene.add(new THREE.HemisphereLight(daylight, groundBounce, 1.65));
+    const sun = new THREE.DirectionalLight(daylight, 2.35); sun.position.set(-26, 45, 22); sun.castShadow = true;
     sun.shadow.mapSize.set(1536, 1536); Object.assign(sun.shadow.camera, { left: -55, right: 55, top: 55, bottom: -55, near: 1, far: 125 });
     sun.shadow.bias = -0.0003; sun.shadow.normalBias = 0.04; sun.shadow.radius = 3; scene.add(sun);
-    const fill = new THREE.DirectionalLight("#bcdedc", 0.7); fill.position.set(25, 18, -22); scene.add(fill);
+    const fill = new THREE.DirectionalLight(daylight, 0.5); fill.position.set(25, 18, -22); scene.add(fill);
     const materials = new Map<string, THREE.MeshStandardMaterial>();
     const mat = (color: string) => {
       if (!materials.has(color)) materials.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.88 }));
@@ -121,24 +124,24 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
     };
     const centerX = (layout.minX + layout.maxX) / 2, centerZ = (layout.minZ + layout.maxZ) / 2;
     const siteWidth = layout.maxX - layout.minX, siteDepth = layout.maxZ - layout.minZ;
-    box(240, 0.1, 240, "#cbdad0", 0, -1.05, 0, scene, 0);
-    box(siteWidth + 1.2, 0.95, siteDepth + 1.2, "#96a99a", centerX, -0.50, centerZ, scene, 0.4);
-    box(siteWidth + 1.0, 0.12, siteDepth + 1.0, "#d4d8c8", centerX, 0.02, centerZ, scene, 0.3);
+    box(240, 0.1, 240, theme.canvas, 0, -1.05, 0, scene, 0);
+    box(siteWidth + 1.2, 0.30, siteDepth + 1.2, theme.surface, centerX, -0.17, centerZ, scene, 0.15);
+    box(siteWidth + 1.0, 0.12, siteDepth + 1.0, theme.surface, centerX, 0.02, centerZ, scene, 0.3);
     // A connected service spine and short streets replace the ornamental canal.
     const streetRows = [...new Set([...layout.plots, ...layout.facilities].map(p => p[1] + 3.3))];
     for (const z of streetRows) {
-      box(siteWidth, 0.05, 1.75, "#778b81", centerX, 0.12, z, scene, 0);
-      for (let x = layout.minX + 1; x < layout.maxX; x += 3) box(1.2, 0.015, 0.055, "#cbd4c2", x, 0.157, z, scene, 0);
+      box(siteWidth, 0.05, 1.75, theme.muted, centerX, 0.12, z, scene, 0);
+      for (let x = layout.minX + 1; x < layout.maxX; x += 3) box(1.2, 0.015, 0.055, theme.paper, x, 0.157, z, scene, 0);
     }
     const spineX = layout.maxX - 0.8;
-    box(1.6, 0.06, siteDepth, "#778b81", spineX, 0.13, centerZ, scene, 0);
+    box(1.6, 0.06, siteDepth, theme.muted, spineX, 0.13, centerZ, scene, 0);
     // The four actual processing stages share a directional service route, with no simulated cargo.
     function routeArrow(from: readonly [number, number], to: readonly [number, number]) {
       const dx = to[0] - from[0], dz = to[1] - from[1], length = Math.hypot(dx, dz);
-      const strip = box(length, 0.02, 0.10, "#b6dbbc", (from[0] + to[0]) / 2, 0.185, (from[1] + to[1]) / 2, scene, 0);
+      const strip = box(length, 0.02, 0.10, theme.accent, (from[0] + to[0]) / 2, 0.185, (from[1] + to[1]) / 2, scene, 0);
       strip.rotation.y = -Math.atan2(dz, dx);
       const shape = new THREE.Shape(); shape.moveTo(0.5, 0); shape.lineTo(-0.3, 0.32); shape.lineTo(-0.3, -0.32); shape.closePath();
-      const arrow = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat("#def0c6"));
+      const arrow = new THREE.Mesh(new THREE.ShapeGeometry(shape), mat(theme.paper));
       arrow.rotation.x = -Math.PI / 2; arrow.rotation.z = -Math.atan2(dz, dx);
       arrow.position.set((from[0] + to[0]) / 2, 0.20, (from[1] + to[1]) / 2); scene.add(arrow);
     }
@@ -157,7 +160,7 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
     const processGroups = new Map<ProcessKey, THREE.Group>(), processLights = new Map<ProcessKey, THREE.Mesh>(), moving = new Map<ProcessKey, THREE.Mesh>();
     const buildingGroup = new THREE.Group(); scene.add(buildingGroup);
     const loader = new GLTFLoader(), models = new Map<string, THREE.Group>(), abort = new AbortController();
-    const modelNamesToLoad = [...modelNames, "shipping-container-a", "shipping-container-b", "truck", "box", "tree-oak", "tree-pine", "light-curved"];
+    const modelNamesToLoad = [...modelNames, "truck", "box", "tree-oak"];
     async function load(name: string) {
       const response = await fetch(`/assets/models/${name}.glb`, { signal: AbortSignal.any([abort.signal, AbortSignal.timeout(18000)]) });
       if (!response.ok) throw new Error(`Model HTTP ${response.status}: ${name}`);
@@ -178,31 +181,32 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
       return object;
     }
     function signal(parent: THREE.Object3D, x = 2.3) {
-      box(0.07, 1.35, 0.07, "#3f6054", x, 0.98, 1.7, parent, 0, false);
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 6), new THREE.MeshStandardMaterial({ color: palette.normal, emissive: palette.normal, emissiveIntensity: 0.3 }));
+      box(0.07, 1.35, 0.07, theme.ink, x, 0.98, 1.7, parent, 0, false);
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.22, 10, 6), new THREE.MeshStandardMaterial({ color: theme.muted, emissive: theme.muted, emissiveIntensity: 0.3 }));
       mesh.position.set(x, 1.72, 1.7); parent.add(mesh); return mesh;
     }
     function buildSite() {
       propsRef.current.snapshot.accounts.forEach((a) => {
         const position = layout.plots[a.number - 1]; if (!position) return;
         const [x, z] = position, group = new THREE.Group(); group.position.set(x, 0, z); group.userData.accountId = a.id; buildingGroup.add(group); accountGroups.set(a.id, group);
-        box(6.8, 0.22, 6.15, "#f0f0e1", 0, 0.20, 0, group, 0.14);
-        const selection = box(7.1, 0.10, 6.45, "#6db9a5", 0, 0.13, 0, group, 0.12, false); selection.visible = false; selections.set(a.id, selection);
+        box(6.86, 0.22, 6.15, theme.surface, 0, 0.20, 0, group, 0.02);
+        box(6.64, 0.25, 5.93, theme.paper, 0, 0.22, 0, group, 0.02);
+        const selection = box(7.1, 0.10, 6.45, theme.accent, 0, 0.13, 0, group, 0.12, false); selection.visible = false; selections.set(a.id, selection);
         const building = placeModel(modelNames[a.number - 1], group, 4.4, 3.5, 4.4);
         if (building) building.position.z -= 0.65;
         else {
           // A missing individual model retains a real, selectable facility with the same identity.
-          box(3.8, 2.2, 3.1, "#e6e5d4", 0, 1.4, -0.5, group);
-          box(4.1, 0.18, 3.4, "#507d72", 0, 2.59, -0.5, group);
-          box(1.7, 1.45, 0.07, "#577d72", 0, 1.12, 1.08, group, 0);
+          box(3.8, 2.2, 3.1, theme.paper, 0, 1.4, -0.5, group);
+          box(4.1, 0.18, 3.4, theme.accent, 0, 2.59, -0.5, group);
+          box(1.7, 1.45, 0.07, theme.muted, 0, 1.12, 1.08, group, 0);
         }
         lights.set(a.id, signal(group));
         const slots: THREE.Object3D[] = [];
         for (let j = 0; j < 10; j++) {
           const xSlot = -2.43 + (j % 5) * 0.70, zSlot = 1.62 + Math.floor(j / 5) * 0.68;
-          box(0.63, 0.025, 0.59, "#b5c4af", xSlot, 0.33, zSlot, group, 0.02);
+          box(0.63, 0.025, 0.59, theme.surface, xSlot, 0.33, zSlot, group, 0.02);
           const itemGroup = new THREE.Group(); itemGroup.position.set(xSlot, 0.02, zSlot); group.add(itemGroup);
-          if (!placeModel("box", itemGroup, 0.51, 0.51, 0.56)) box(0.50, 0.48, 0.50, "#b89a5f", 0, 0.57, 0, itemGroup, 0.02, false);
+          if (!placeModel("box", itemGroup, 0.51, 0.51, 0.56)) box(0.50, 0.48, 0.50, theme.accent, 0, 0.57, 0, itemGroup, 0.02, false);
           slots.push(itemGroup);
         }
         cargo.set(a.id, slots);
@@ -210,11 +214,12 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
       });
       processes.forEach((process, i) => {
         const [x, z] = layout.facilities[i], group = new THREE.Group(); group.position.set(x, 0, z); group.userData.process = process.key; buildingGroup.add(group); processGroups.set(process.key, group);
-        box(7.6, 0.25, 6.3, "#b8d0c0", 0, 0.18, 0, group, 0.15);
-        box(7.2, 0.14, 5.9, "#e8ecdd", 0, 0.36, 0, group, 0.12);
+        box(7.6, 0.25, 6.3, theme.surface, 0, 0.18, 0, group, 0.15);
+        box(7.2, 0.14, 5.9, theme.paper, 0, 0.36, 0, group, 0.12);
         const facility = buildProcessFacility({ key: process.key, group,
           box: (w, h, d, color, x, y, z, fixed = true) => box(w, h, d, color, x, y, z, group, 0.035, fixed),
           model: placeModel, material: mat,
+          palette: { machine: theme.accent, steel: theme.muted, roller: theme.surface, belt: theme.ink, capacity: theme.accent, concrete: theme.paper },
         });
         processStock.push(...facility.stockSlots);
         if (facility.scanner) processScanners.push(facility.scanner);
@@ -222,7 +227,7 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
         const hitVolume = new THREE.Mesh(new THREE.BoxGeometry(6.6, 4.0, 4.9), new THREE.MeshBasicMaterial({ visible: false }));
         hitVolume.position.set(0, 2.25, -0.1); group.add(hitVolume);
         processLights.set(process.key, signal(group, 3.0));
-        const indicator = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.075, 6, 20), new THREE.MeshStandardMaterial({ color: "#2b8979", roughness: 0.6 }));
+        const indicator = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.075, 6, 20), new THREE.MeshStandardMaterial({ color: theme.accent, roughness: 0.6 }));
         indicator.position.set(-2.9, 0.6, 1.6); indicator.rotation.x = -Math.PI / 2; group.add(indicator); moving.set(process.key, indicator);
         group.traverse(o => { o.userData.process = process.key; });
       });
@@ -258,20 +263,19 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
         parts.forEach(g => g.dispose());
       }
       renderer.shadowMap.needsUpdate = true; dirty = true; ready = true; setMissingModels(modelNames.filter(name => !models.has(name)).length); setLoaded(true); propsRef.current.onReady();
+      if (window.innerWidth >= 1024 && propsRef.current.selected) controller.current?.focus(propsRef.current.selected);
     }
     Promise.allSettled(modelNamesToLoad.map(load)).then(() => { if (!disposed) buildSite(); });
     let targetPosition: THREE.Vector3 | null = null, targetZoom: number | null = null, overview = true;
     let safe: Rect = { left: 16, right: element.clientWidth - 16, top: 140, bottom: element.clientHeight - 110 };
     function readSafe() {
-      const css = getComputedStyle(element), width = element.clientWidth, height = element.clientHeight;
-      const value = (name: string, fallback: number) => Number.parseFloat(css.getPropertyValue(name)) || fallback;
-      const top = value("--world-safe-top", height < 450 ? 65 : 140), bottom = value("--world-safe-bottom", height < 450 ? 82 : 110);
-      safe = { left: value("--world-safe-left", 18), right: width - value("--world-safe-right", 24), top, bottom: height - bottom };
-      // Panels can occupy the usable region. The full overview is restored when they close.
-      if (safe.bottom - safe.top < 100) safe.top = Math.max(8, safe.bottom - 120);
+      const width = element.clientWidth, height = element.clientHeight;
+      const inset = width <= 480 ? 24 : 28;
+      safe = { left: inset, right: width - inset, top: 28, bottom: height - 28 };
+      if (height < 240) safe = { left: 24, right: width - 24, top: 24, bottom: height - 24 };
     }
     const corners: THREE.Vector3[] = [];
-    for (const x of [layout.minX - 1, layout.maxX + 1]) for (const z of [layout.minZ - 1, layout.maxZ + 1]) for (const y of [0, layout.cols === 7 ? 3 : 5.3]) corners.push(new THREE.Vector3(x, y, z));
+    for (const x of [layout.minX - 1, layout.maxX + 1]) for (const z of [layout.minZ - 1, layout.maxZ + 1]) for (const y of [0, 4.6]) corners.push(new THREE.Vector3(x, y, z));
     function fit(resetAngle = false) {
       readSafe();
       const direction = resetAngle ? initialDirection.clone() : camera.position.clone().sub(controls.target).normalize().multiplyScalar(initialDirection.length());
@@ -281,7 +285,7 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
       const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0), up = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1);
       const xs = corners.map(p => p.clone().sub(controls.target).dot(right)), ys = corners.map(p => p.clone().sub(controls.target).dot(up));
       const minX = Math.min(...xs), maxX = Math.max(...xs), minY = Math.min(...ys), maxY = Math.max(...ys);
-      const availableW = Math.max(80, safe.right - safe.left - 44), availableH = Math.max(80, safe.bottom - safe.top - (layout.cols === 7 ? 24 : 40));
+      const availableW = Math.max(80, safe.right - safe.left - 12), availableH = Math.max(80, safe.bottom - safe.top - 12);
       const units = Math.max((maxX - minX) / availableW, (maxY - minY) / availableH);
       const width = element.clientWidth, height = element.clientHeight;
       camera.left = -width * units / 2; camera.right = width * units / 2; camera.top = height * units / 2; camera.bottom = -height * units / 2;
@@ -296,15 +300,8 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
       reset: () => { overview = true; fit(true); },
       focus: id => {
         const a = propsRef.current.snapshot.accounts.find(a => a.id === id), p = a && layout.plots[a.number - 1]; if (!p) return;
-        readSafe(); camera.updateMatrixWorld(true);
-        const width = element.clientWidth, height = element.clientHeight;
-        const panelWidth = document.querySelector(".panel")?.getBoundingClientRect().width || Math.min(400, width * 0.42);
-        const center = (safe.left + Math.min(safe.right, width - panelWidth - 24)) / 2;
-        const units = (camera.right - camera.left) / width / 1.6;
-        targetPosition = new THREE.Vector3(p[0], 0, p[1])
-          .add(new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0).multiplyScalar((width / 2 - center) * units))
-          .add(new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 1).multiplyScalar(((safe.top + safe.bottom) / 2 - height / 2) * units));
-        targetZoom = 1.6; overview = false; dirty = true;
+        targetPosition = new THREE.Vector3(p[0], 0.8, p[1]);
+        targetZoom = 1.45; overview = false; dirty = true;
       },
     };
     // A gesture is selectable only when it stayed a single, primary tap throughout its lifetime.
@@ -345,19 +342,18 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
       const width = element.clientWidth, height = element.clientHeight, nodes: LabelPosition[] = [], anchors = new Map<string, {x: number; y: number}>();
       const add = (id: string, x: number, z: number) => {
         const marker = markers.current.get(id); if (!marker) return;
-        const v = new THREE.Vector3(x, 0.65, z + 2.6).project(camera), px = (v.x * 0.5 + 0.5) * width, py = (-v.y * 0.5 + 0.5) * height;
+        const v = new THREE.Vector3(x, 0.3, z + 3.3).project(camera), px = (v.x * 0.5 + 0.5) * width, py = (-v.y * 0.5 + 0.5) * height;
         const inside = overview || (px > -40 && px < width + 40 && py > safe.top - 70 && py < safe.bottom + 70);
         marker.style.visibility = inside ? "visible" : "hidden";
         const leader = leaders.current.get(id); if (leader) leader.style.visibility = inside ? "visible" : "hidden";
         if (!inside) return;
-        const badge = marker.querySelector(".account-layer-value") ? 1 : 0;
-        anchors.set(id, {x: px, y: py}); nodes.push({ id, x: px, y: py, width: marker.offsetWidth + badge * 10, height: marker.offsetHeight + badge * 16 });
+        anchors.set(id, {x: px, y: py}); nodes.push({ id, x: px, y: py, width: marker.offsetWidth, height: marker.offsetHeight });
       };
       for (const a of propsRef.current.snapshot.accounts) { const p = layout.plots[a.number - 1]; if (p) add(a.id, p[0], p[1]); }
       for (let i = 0; i < processes.length; i++) add("process-" + processes[i].key, ...layout.facilities[i]);
       // Preserve spatial ordering while reserving the selected target's exact hit area first.
       nodes.sort((a, b) => a.id === propsRef.current.selected ? -1 : b.id === propsRef.current.selected ? 1 : a.y - b.y || a.x - b.x);
-      const arranged = layout.cols === 7 ? (() => {
+      const arranged = layout.cols === 7 && element.clientHeight < 300 ? (() => {
         // A low landscape viewport has three actual facility rows. Reserve those rows together
         // so a greedy collision solver cannot push the last account to the opposite side.
         const groups = [nodes.filter(node => node.id.startsWith("process-")), nodes.filter(node => { const a = propsRef.current.snapshot.accounts.find(a => a.id === node.id); return a && a.number <= 7; }), nodes.filter(node => { const a = propsRef.current.snapshot.accounts.find(a => a.id === node.id); return a && a.number > 7; })];
@@ -419,12 +415,12 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
         processStock.forEach((slot, i) => { slot.visible = reserveRatio > i / 10; slot.scale.y = Math.max(0.12, THREE.MathUtils.clamp(reserveRatio * 10 - i, 0, 1)); });
         for (const a of current.snapshot.accounts) {
           const select = selections.get(a.id); if (select) select.visible = a.id === current.selected;
-          const light = lights.get(a.id); if (light) { const material = light.material as THREE.MeshStandardMaterial; const color = current.stale ? palette.unknown : palette[severity(a)]; material.color.setHex(color); material.emissive.setHex(color); }
+          const light = lights.get(a.id); if (light) { const material = light.material as THREE.MeshStandardMaterial; const color = current.stale ? theme.muted : severity(a) === "active" ? theme.accent : ["danger", "warning"].includes(severity(a)) ? theme.ink : theme.muted; material.color.set(color); material.emissive.set(color); }
           // Ten marked capacity slots always mean the account's actual target; no arbitrary 120-item cap.
           const ratio = a.target > 0 ? Math.max(0, a.ready / a.target) : 0;
           cargo.get(a.id)?.forEach((slot, i) => { slot.visible = ratio > i / 10; const partial = THREE.MathUtils.clamp(ratio * 10 - i, 0, 1); slot.scale.y = Math.max(0.12, partial); });
         }
-        for (const [key, light] of processLights) { const material = light.material as THREE.MeshStandardMaterial; const state = processState(key, current.snapshot, current.stale); const color = palette[state.tone as keyof typeof palette] || palette.normal; material.color.setHex(color); material.emissive.setHex(color); }
+        for (const [key, light] of processLights) { const material = light.material as THREE.MeshStandardMaterial; const state = processState(key, current.snapshot, current.stale); const color = state.active ? theme.accent : state.tone === "warning" ? theme.ink : theme.muted; material.color.set(color); material.emissive.set(color); }
         scene.updateMatrixWorld(true);
         const hiddenMatrix = new THREE.Matrix4().makeScale(0, 0, 0);
         for (const batch of stockBatches) {
@@ -441,11 +437,12 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
         cargo: current.snapshot.accounts.map(a => ({ id: a.id, ready: a.ready, target: a.target, visible: cargo.get(a.id)?.filter(o => o.visible).length || 0 })),
         processes: [...processGroups.entries()].map(([key, group]) => ({ key, role: group.userData.role, bounds: new THREE.Box3().setFromObject(group).getSize(new THREE.Vector3()).toArray() })),
         reserveSlots: processStock.filter(slot => slot.visible).length,
-        camera: { matrixWorld: camera.matrixWorld.toArray(), projection: camera.projectionMatrix.toArray() }, ready, modelFailures: modelNamesToLoad.filter(name => !models.has(name)) };
+        camera: { matrixWorld: camera.matrixWorld.toArray(), projection: camera.projectionMatrix.toArray() }, ready, appearance: { dark, background: ui.canvas, ground: theme.surface, road: theme.muted, pad: theme.paper, daylight }, modelFailures: modelNamesToLoad.filter(name => !models.has(name)) };
     }
     let previousViewportHeight = element.clientHeight;
     function resize() {
       const width = element.clientWidth, height = element.clientHeight; if (!width || !height) return;
+      element.dataset.detailed = String(width >= 1024 || (width >= 768 && layout.cols <= 5));
       const next = siteLayout(width, height); if (next.cols !== layout.cols) { setMode(m => m + 1); return; }
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5)); renderer.setSize(width, height); readSafe();
       if (overview) fit(); else {
@@ -456,35 +453,43 @@ const World = forwardRef<WorldHandle, Props>(function World(props, ref) {
       }
       previousViewportHeight = height;
     }
+    // Keep WebGL appearance in sync with both explicit and operating-system themes.
+    const colorScheme = window.matchMedia("(prefers-color-scheme: dark)");
+    const refreshAppearance = () => {
+      const current = getComputedStyle(element);
+      if (current.getPropertyValue("--ui-bg").trim() !== ui.canvas || current.getPropertyValue("--ui-surface").trim() !== ui.paper) setAppearance(value => value + 1);
+    };
+    const themeObserver = new MutationObserver(refreshAppearance);
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme", "class", "style"] });
+    colorScheme.addEventListener("change", refreshAppearance);
     const observer = new ResizeObserver(resize); observer.observe(element); resize(); frame = requestAnimationFrame(render);
     return () => {
-      disposed = true; abort.abort(); cancelAnimationFrame(frame); observer.disconnect(); controls.dispose();
+      disposed = true; abort.abort(); cancelAnimationFrame(frame); observer.disconnect(); themeObserver.disconnect(); colorScheme.removeEventListener("change", refreshAppearance); controls.dispose();
       element.removeEventListener("pointerdown", down, true); element.removeEventListener("pointermove", move, true); element.removeEventListener("pointerup", up, true); element.removeEventListener("pointercancel", cancel, true);
       renderer.domElement.removeEventListener("webglcontextlost", lost); renderer.domElement.removeEventListener("webglcontextrestored", restored);
       disposeObject(scene); models.forEach(disposeObject); renderer.dispose(); renderer.domElement.remove(); controller.current = null;
     };
-  }, [attempt, mode]);
+  }, [attempt, mode, appearance]);
   function bindMarker(id: string, element: HTMLButtonElement | null) { if (element) markers.current.set(id, element); else markers.current.delete(id); }
   const allIds = [...props.snapshot.accounts.map(a => a.id), ...processes.map(p => "process-" + p.key)];
   const icons = { generation: Factory, review: ScanLine, stock: Package, submission: Truck };
-  return <div ref={host} className={`world business-world ${error ? "world-failed" : ""} ${props.reduced ? "reduced" : ""}`}>
+  return <div ref={host} data-layer={props.layer} className={`world business-world ${error ? "world-failed" : ""} ${props.reduced ? "reduced" : ""}`}>
     {loaded && !error && missingModels > 0 && <button className="world-model-retry" onPointerDown={e => e.stopPropagation()} onClick={() => setAttempt(a => a + 1)}><RotateCcw size={13}/>모형 {missingModels}개 다시 받기</button>}
     {!loaded && !error && <div className="world-loading"><span className="loader"/><span>사업 단지를 불러오는 중</span></div>}
     {error ? <div className="world-fallback"><h2>시설 목록</h2><p>{error}</p><button className="world-retry" onClick={() => setAttempt(a => a + 1)}><RotateCcw size={16}/>3D 다시 연결</button><div className="fallback-plots">{props.snapshot.accounts.map(a => <button key={a.id} onClick={() => props.onSelect(a.id)}><AccountState account={a} waiting={pending(a, props.commands)} stale={props.stale}/><b>{a.number}</b><span>{a.name}</span><strong>{n(a.ready)}</strong></button>)}</div></div>
     : <><svg className="world-leaders" aria-hidden="true">{allIds.map(id => <line key={id} ref={el => { if (el) leaders.current.set(id, el); else leaders.current.delete(id); }}/>)}</svg><div className="world-markers">
       {props.snapshot.accounts.map(a => {
-        const waiting = pending(a, props.commands), issue = ["danger", "warning"].includes(severity(a));
+        const waiting = pending(a, props.commands);
         return <button key={a.id} ref={el => bindMarker(a.id, el)} className={`plot-label ${props.selected === a.id ? "selected" : ""} ${props.stale ? "unknown" : severity(a)} ${waiting ? "has-command" : ""}`}
           onClick={e => { if (e.detail === 0) props.onSelect(a.id); }} aria-label={`${a.number}번 ${a.name}, ${props.stale ? "상태 확인 필요" : waiting ? "지시 대기" : status(a)}, 제출 가능 ${a.ready}개, 목표 ${a.target}개`} data-account={a.id} title={`${a.name} · ${waiting ? "지시 대기" : status(a)}`}>
           <span className="account-marker-top"><span className="account-number">{String(a.number).padStart(2,"0")}</span><AccountState account={a} waiting={waiting} stale={props.stale}/></span>
-          <span className="account-alias">{alias(a)}</span>
-          {a.previewId && props.thumbnails?.includes(a.previewId) && <img className="account-miniature" alt="" src={"/api/thumbnail/" + encodeURIComponent(a.previewId)}/>}
+          <span className="account-alias">{styleLabels[a.style] || a.name.slice(0, 4)}</span>
           {props.layer !== "status" && <b className="account-layer-value">{n(props.layer === "stock" ? a.ready : a.counts.submitted || 0)}</b>}
-          {(props.selected === a.id || issue || waiting) && <span className="plot-tooltip">{waiting ? "지시 대기" : status(a)}</span>}
+          <span className="plot-tooltip">{a.name} · {waiting ? "지시 대기" : status(a)}{props.layer === "stock" ? ` · 재고 ${n(a.ready)}` : props.layer === "review" ? ` · 심사 ${n(a.counts.submitted || 0)}` : ""}</span>
         </button>;
       })}
       {processes.map(process => { const state = processState(process.key, props.snapshot, props.stale), Icon = icons[process.key]; return <button key={process.key} ref={el => bindMarker("process-" + process.key, el)} data-process={process.key} className={`process-label ${state.tone} ${props.activeProcess === process.key ? "selected" : ""}`}
-        onClick={e => { if (e.detail === 0) props.onInspectProcess?.(process.key); }} aria-label={`${process.name}, ${state.label}`}><span><Icon size={13}/><strong>{process.name}</strong></span><small>{state.label}</small>{state.active && <LoaderCircle className="process-live" size={10}/>}</button>; })}
+        onClick={e => { if (e.detail === 0) props.onInspectProcess?.(process.key); }} aria-label={`${process.name}, ${state.label}`} title={`${process.name} · ${state.label}`}><span><Icon size={13}/><strong>{process.name}</strong></span><small aria-hidden="true">{state.label}</small>{state.active ? <LoaderCircle className="process-live" size={14}/> : state.tone === "unknown" ? <Clock3 className="process-live" size={14}/> : null}</button>; })}
     </div></>}
   </div>;
 });

@@ -8,6 +8,7 @@ import {
   Component,
   type ReactNode,
   type FormEvent,
+  type MouseEventHandler,
 } from "react";
 import {
   ArrowRight,
@@ -15,6 +16,11 @@ import {
   ChevronDown,
   ChevronRight,
   Layers3,
+  History,
+  ScanLine,
+  Clock3,
+  Check,
+  Info,
   Move3D,
   Factory,
   Focus,
@@ -33,6 +39,7 @@ import { Panels } from "./ui/Panels";
 import { IconButton } from "./ui/Primitives";
 import {
   date,
+  n,
   isIssue,
   isStale,
   laneCondition,
@@ -55,7 +62,7 @@ class WorldBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 function WorldFallback({ accounts, select, retry }: { accounts: Account[]; select: (id: string) => void; retry: () => void }) {
   return <div className="world-recovery" role="region" aria-label="작업동 목록 보기">
-    <div className="world-recovery-heading"><span>3D 화면을 불러오지 못했습니다.</span><button className="button secondary" onClick={retry}><RefreshCw size={16} />3D 다시 열기</button></div>
+    <div className="world-recovery-heading"><span>3D 화면을 불러오지 못했습니다.</span><button className="ui-button button secondary" onClick={retry}><RefreshCw size={16} />3D 다시 열기</button></div>
     <div className="fallback-accounts">{accounts.map(a => <button key={a.id} onClick={() => select(a.id)}><span className={"signal " + severity(a)} /><b>{String(a.number).padStart(2,"0")} · {a.name}</b><small>{status(a)}</small></button>)}</div>
   </div>;
 }
@@ -77,7 +84,8 @@ export default function App() {
     [layer, setLayer] = useState<Layer>("status"),
     [mapControl, setMapControl] = useState<"camera" | "layer" | null>(null),
     [ready, setReady] = useState(false),
-    [toast, setToast] = useState(""),
+    [toast, setToast] = useState<{ message: string; tone: "success" | "error" | "info" } | null>(null),
+    [compact, setCompact] = useState(() => !matchMedia("(min-width: 1024px)").matches),
     [refreshing, setRefreshing] = useState(false),
     [reduced, setReduced] = useState(
       () =>
@@ -89,10 +97,16 @@ export default function App() {
     toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     polling = useRef(false),
     lastFocus = useRef<HTMLElement | null>(null);
-  const notify = useCallback((message: string) => {
-    setToast(message);
+  const notify = useCallback((message: string, tone: "success" | "error" | "info" = "info") => {
+    setToast({ message, tone });
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(""), 5000);
+    toastTimer.current = setTimeout(() => setToast(null), 5000);
+  }, []);
+  useEffect(() => {
+    const query = matchMedia("(min-width: 1024px)");
+    const changed = () => setCompact(!query.matches);
+    query.addEventListener("change", changed);
+    return () => query.removeEventListener("change", changed);
   }, []);
   const refresh = useCallback(async () => {
     if (polling.current) return;
@@ -142,15 +156,15 @@ export default function App() {
     setPanel(null);
     setMapControl(null);
     requestAnimationFrame(() => {
-      if (lastFocus.current?.isConnected) lastFocus.current.focus();
+      if (lastFocus.current?.isConnected && lastFocus.current !== document.body && !lastFocus.current.closest(".panel")) lastFocus.current.focus({ preventScroll: true });
       else
         document
           .querySelector<HTMLButtonElement>("#main-tools button")
           ?.focus();
     });
   }, []);
-  const open = (next: Panel) => {
-    lastFocus.current = document.activeElement as HTMLElement;
+  const open = (next: Panel, trigger?: HTMLElement) => {
+    lastFocus.current = trigger || document.activeElement as HTMLElement;
     setPanel(next === panel ? null : next);
     setActiveProcess(null);
   };
@@ -165,7 +179,7 @@ export default function App() {
       lastFocus.current = document.activeElement as HTMLElement;
     setSelected(id);
     setPanel("account");
-    if (window.innerWidth > 850) world.current?.focus(id);
+    if (window.innerWidth >= 1024) world.current?.focus(id);
   };
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -216,6 +230,10 @@ export default function App() {
     weekday: "short",
     timeZone: "Asia/Seoul",
   }).format(time);
+  const nextCheckAt = Date.parse(s?.automation.nextAt || "");
+  const nextCheckText = !Number.isFinite(nextCheckAt) ? "예정 없음"
+    : nextCheckAt <= time ? "순회 대기"
+    : new Intl.DateTimeFormat("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false, timeZone: "Asia/Seoul" }).format(nextCheckAt);
   const onReady = useCallback(() => setReady(true), []);
   if (auth === false)
     return (
@@ -228,20 +246,19 @@ export default function App() {
     );
   return (
     <div
-      className={`app ${panel ? "has-panel" : ""} ${reduced ? "reduced-motion" : ""}`}
+      className={`ui-page-app app ${panel ? "has-panel" : ""} ${panel === "inventory" ? "wide-panel" : ""} ${reduced ? "reduced-motion" : ""}`}
     >
       <a href="#main-tools" className="skip-link">
         관제 메뉴로 이동
       </a>
       <header className="topbar">
-        <div className="brand">
+        <button className="brand" aria-label="전체 단지로 돌아가기" onClick={() => { close(); setSelected(null); setActiveProcess(null); world.current?.reset(); }}>
           <img src="/favicon.svg" alt="" />
           <span>BLUEKITE</span>
-        </div>
-        <span className="header-divider" />
+        </button>
         <button
           className="business-picker"
-          onClick={() => open("businesses")}
+          onClick={event => open("businesses", event.currentTarget)}
           aria-expanded={panel === "businesses"}
         >
           <span>미리캔버스</span>
@@ -251,7 +268,8 @@ export default function App() {
           <span className="today">{today}</span>
           <button
             className={"connection " + (stale ? "offline" : "")}
-            onClick={() => open("automation")}
+            onClick={event => open("automation", event.currentTarget)}
+            aria-label={stale ? "작업기 연결 확인" : "상태 수신"}
             title={s ? `마지막 수신 ${date(s.receivedAt, true)}` : "연결 중"}
           >
             <i className={"signal " + (stale ? "unknown" : "active")} />
@@ -268,43 +286,19 @@ export default function App() {
       </header>
       {s && data && total ? (
         <>
-          <main className="world-stage" data-scene-ready={ready} aria-label="미리캔버스 사업 단지" onPointerDown={e => { if (!(e.target as HTMLElement).closest(".map-tools")) setMapControl(null); }}>
-            <WorldBoundary key={worldAttempt} fallback={<WorldFallback accounts={s.accounts} select={select} retry={retryWorld} />}>
-            <Suspense
-              fallback={
-                <div className="world-loading">
-                  <span className="loader" />
-                  단지를 준비하는 중
-                </div>
-              }
-            >
-              <World
-                ref={world}
-                snapshot={s}
-                selected={selected}
-                layer={layer}
-                reduced={reduced}
-                stale={stale}
-                onSelect={select}
-                onReady={onReady}
-                commands={data.commands}
-                thumbnails={data.thumbnails}
-                activeProcess={activeProcess}
-                onInspectProcess={inspectProcess}
-              />
-            </Suspense>
-            </WorldBoundary>
-            <div className="world-title">
-              <h1>크리에이터 파크</h1>
-            </div>
-            <button className="activity-peek" onClick={() => { setSelected(null); open("activity"); }} aria-expanded={panel === "activity"}>
-              <span className={"activity-dot " + (changes.length ? "fresh" : "")} />
-              <span>{changes.length ? `최근 변화 ${changes.length}건` : "새 변화 없음"}</span>
-              <ChevronRight size={15} />
-            </button>
+          <main className="world-stage" inert={compact && !!panel} data-scene-ready={ready} aria-label="미리캔버스 사업 단지">
+            <div className="world-toolbar">
+              <div className="world-heading">
+                <div className="world-title"><h1>크리에이터 파크</h1><span>{s.accounts.length}개 작업동</span></div>
+                <div className="world-heading-actions">
+                  <IconButton label={`최근 변화 ${changes.length}건`} className="activity-peek" onClick={event => { setSelected(null); open("activity", event.currentTarget); }} aria-expanded={panel === "activity"}>
+                    <History size={20} />{changes.length > 0 && <span className="activity-dot" />}
+                  </IconButton>
             <div className="map-tools">
               <div className="map-tool-launchers">
-                <IconButton label="지도 표시" aria-controls="map-layer-options" aria-expanded={mapControl === "layer"} onClick={() => setMapControl(v => v === "layer" ? null : "layer")}><Layers3 size={19} /></IconButton>
+                <IconButton label="지도 표시" aria-describedby={layer === "status" ? undefined : "current-map-layer"} aria-controls="map-layer-options" aria-expanded={mapControl === "layer"} onClick={() => setMapControl(v => v === "layer" ? null : "layer")}>
+                  {layer === "status" ? <Layers3 size={19} /> : <span id="current-map-layer">{layer === "stock" ? "재고" : "심사"}</span>}
+                </IconButton>
                 <IconButton label="시점 조절" aria-controls="map-camera-options" aria-expanded={mapControl === "camera"} onClick={() => setMapControl(v => v === "camera" ? null : "camera")}><Move3D size={19} /></IconButton>
               </div>
               <div id="map-layer-options" hidden={mapControl !== "layer"} className="layer-control" aria-label="지도 표시">
@@ -350,18 +344,55 @@ export default function App() {
                 </IconButton>
               </div>
             </div>
-            {(issueCount > 0 || stale) && (
-              <button
-                className={"attention " + (stale ? "stale" : "")}
-                onClick={() => open("alerts")}
-              >
-                {stale ? <WifiOff size={19} /> : <TriangleAlert size={19} />}
-                <span>
-                  {stale ? "작업기 연결 확인" : `확인할 일 ${issueCount}건`}
-                </span>
-                <ChevronRight size={17} />
+                </div>
+              </div>
+              {(issueCount > 0 || stale) ? (
+                <button className={"attention " + (stale ? "stale" : "")} onClick={() => { if (!stale && issues.length === 1 && issueCount === 1) select(issues[0].id); else open("alerts"); }}>
+                  {stale ? <WifiOff size={20} /> : <TriangleAlert size={20} />}
+                  <strong>{stale ? "작업기 연결 확인" : `확인할 일 ${issueCount}건`}</strong>
+                  <span>{stale ? "마지막 상태를 보고 있습니다" : issues.length ? `${String(issues[0].number).padStart(2, "0")} · ${status(issues[0])}` : "운영 상태 확인"}</span>
+                  <ChevronRight size={18} />
+                </button>
+              ) : null}
+            </div>
+            <div className="world-viewport" onPointerDown={() => setMapControl(null)}>
+            <WorldBoundary key={worldAttempt} fallback={<WorldFallback accounts={s.accounts} select={select} retry={retryWorld} />}>
+            <Suspense
+              fallback={
+                <div className="world-loading">
+                  <span className="loader" />
+                  단지를 준비하는 중
+                </div>
+              }
+            >
+              <World
+                ref={world}
+                snapshot={s}
+                selected={selected}
+                layer={layer}
+                reduced={reduced}
+                stale={stale}
+                onSelect={select}
+                onReady={onReady}
+                commands={data.commands}
+                thumbnails={data.thumbnails}
+                activeProcess={activeProcess}
+                onInspectProcess={inspectProcess}
+              />
+            </Suspense>
+            </WorldBoundary>
+            </div>
+            <div className="park-summary" aria-label="사업 현황">
+              <button onClick={() => { setSelected(null); setInventory(v => ({ ...v, filter: "ready", page: 0 })); setPanel("inventory"); }}>
+                <Package size={20} /><span>제출 가능<strong>{n(total.ready)}<small>개</small></strong></span><ChevronRight size={16} />
               </button>
-            )}
+              <button onClick={() => { setSelected(null); setInventory(v => ({ ...v, filter: "review", page: 0 })); setPanel("inventory"); }}>
+                <ScanLine size={20} /><span>심사 중<strong>{n(total.review)}<small>개</small></strong></span><ChevronRight size={16} />
+              </button>
+              <button onClick={() => { setSelected(null); setPanel("schedule"); }}>
+                <Clock3 size={20} /><span>다음 확인<strong>{nextCheckText}</strong></span><ChevronRight size={16} />
+              </button>
+            </div>
           </main>
           {
             <Panels
@@ -399,35 +430,35 @@ export default function App() {
           <nav id="main-tools" className="dock" aria-label="관제 메뉴">
             <DockButton
               active={panel === "accounts" || panel === "account"}
-              onClick={() => open("accounts")}
+              onClick={event => open("accounts", event.currentTarget)}
               icon={<Factory size={21} />}
               label="작업동"
             />
             <DockButton
               active={panel === "inventory"}
-              onClick={() => {
+              onClick={event => {
                 setSelected(null);
-                open("inventory");
+                open("inventory", event.currentTarget);
               }}
               icon={<Package size={21} />}
               label="재고"
             />
             <DockButton
               active={panel === "schedule"}
-              onClick={() => { setSelected(null); open("schedule"); }}
+              onClick={event => { setSelected(null); open("schedule", event.currentTarget); }}
               icon={<CalendarDays size={21} />}
               label="일정"
             />
-            <span className="dock-divider" />
+
             <DockButton
               active={panel === "alerts"}
-              onClick={() => open("alerts")}
+              onClick={event => open("alerts", event.currentTarget)}
               icon={<TriangleAlert size={21} />}
               label="확인할 일"
             />
             <DockButton
               active={panel === "automation"}
-              onClick={() => open("automation")}
+              onClick={event => open("automation", event.currentTarget)}
               icon={<Settings2 size={21} />}
               label="운영"
             />
@@ -447,7 +478,7 @@ export default function App() {
           </h1>
           <p>{error || "미리캔버스 상태가 도착하면 단지가 열립니다."}</p>
           <button
-            className="button primary"
+            className="ui-button ui-button--primary button primary"
             onClick={() => {
               if (auth === null)
                 void refreshSession();
@@ -460,9 +491,9 @@ export default function App() {
         </main>
       )}
       {toast && (
-        <div className="toast" role="status">
-          <CheckIcon />
-          {toast}
+        <div className={"toast " + toast.tone} role={toast.tone === "error" ? "alert" : "status"}>
+          {toast.tone === "error" ? <TriangleAlert size={20} /> : toast.tone === "success" ? <Check size={20} /> : <Info size={20} />}
+          {toast.message}
         </div>
       )}
       {error && s && (
@@ -482,31 +513,29 @@ function DockButton({
   badge = 0,
 }: {
   active: boolean;
-  onClick: () => void;
+  onClick: MouseEventHandler<HTMLButtonElement>;
   icon: React.ReactNode;
   label: string;
   badge?: number;
 }) {
   return (
     <button
+      aria-label={label}
       aria-pressed={active}
-      className={"dock-button " + (active ? "active" : "")}
+      className={"dock-button ui-nav-rail__link " + (active ? "active is-current" : "")}
       onClick={onClick}
     >
       {icon}
-      <span>{label}</span>
+      <span aria-hidden="true" data-short={label === "작업동" ? "계정" : label === "확인할 일" ? "확인" : label}>{label}</span>
       {badge > 0 && <b>{badge}</b>}
     </button>
   );
-}
-function CheckIcon() {
-  return <span className="toast-check">✓</span>;
 }
 function Login({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   return (
-    <div className="login">
+    <div className="ui-page-auth login">
       <div className="login-brand">
         <img src="/favicon.svg" alt="" />
         <span>BLUEKITE</span>
@@ -535,6 +564,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
         <label>
           접속 암호
           <input
+            className="ui-input"
             name="password"
             type="password"
             required
@@ -547,7 +577,7 @@ function Login({ onLogin }: { onLogin: () => void }) {
             {error}
           </p>
         )}
-        <button className="button primary full" disabled={busy}>
+        <button className="ui-button ui-button--primary button primary full" disabled={busy}>
           {busy ? "확인 중…" : "입장"}
           <ArrowRight size={18} />
         </button>
