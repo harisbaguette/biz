@@ -4,7 +4,15 @@
 
 2026-10-21 실제 배포했다. 전용 APAC D1 ID는 `2a52102f-e796-4f88-a74b-9230b717c9db`이며, HTTPS·로그인·권한 없는 접근 차단·13계정 수신·일정 저장·취소를 확인했다. NAS 접근 권한 승인 후 임시 연결을 종료하고 설치 서비스의 재시작·연속 수신·웹 연결 경고 해제도 확인했다. 배포 후 발견한 연결 프로그램의 Cloudflare 차단과 자동 삽입 통계 스크립트의 CSP 충돌도 수정했다. 최신 검증 범위는 [검증 기록](검증.md)을 따른다.
 
-## 적용 순서
+## 기존 서비스 갱신
+
+현재 Worker·D1·도메인·연결 서비스가 이미 운영 중이다. 기존 Wrangler 로그인을 재사용하고 인증 값과 연결 서비스를 다시 만들지 않는다. 2026-10-23 산업 게임의 수익 원장은 `worker/migrations/20261023-revenue-up.sql`로 테이블 두 개만 추가한다. 원본 제작 DB와 기존 운영 자료는 바꾸지 않는다.
+
+배포할 빌드는 별도 폴더의 격리 서버에서 먼저 검사한다. 검사 중인 정적 파일을 다시 빌드해 덮지 않는다. 통과한 동일 `dist`를 `wrangler deploy`로 올리고 원격 manifest가 같은지 확인한다. 실제 서비스에서는 로그인과 조회·화면 조작만 검사하며 시험 수익·제출·자동화 지시는 만들지 않는다.
+
+수익 원장을 되돌릴 때는 이전 Worker로 복구해도 추가 테이블을 유지할 수 있다. `revenue-down.sql` 계열 파일은 데이터를 삭제하므로 운영 복구의 기본 명령으로 사용하지 않는다.
+
+## 최초 설치 순서
 
 1. `npx wrangler login --device --browser=false --scopes account:read user:read workers:write workers_scripts:write workers_routes:write zone:read d1:write`로 인증 링크와 코드를 발급한다. 사용자가 Doweek 계정으로 승인한다. 브라우저 창은 자동으로 열지 않는다. `npx wrangler whoami`로 대상 계정을 확인한다.
 2. 같은 이름의 D1과 Worker, 기존 도메인 연결이 있는지 먼저 확인한다. 없으면 `npx wrangler d1 create bluekite-biz --location apac`로 별도 D1을 만들고 반환 ID를 `wrangler.jsonc`에 기록한다.

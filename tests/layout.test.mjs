@@ -16,32 +16,38 @@ function assertTargets(labels, safe, count) {
   }
 }
 
-test('13개 작업동의 신원과 네 공정의 물리 위치는 기기 방향·화면 크기로 바뀌지 않는다', () => {
+test('13개 창고와 일곱 공정은 모든 기기에서 빠짐없이 연결된다', () => {
   const baseline = siteLayout(390, 844);
-  for (const [width,height] of [[360,640],[320,568],[768,1024],[1024,768],[1440,900]]) {
-    assert.deepEqual(siteLayout(width,height), baseline);
+  for (const [width,height] of [[360,640],[320,568],[768,1024]])assert.deepEqual(siteLayout(width,height), baseline);
+  for(const [width,height]of [[1024,768],[1440,900]]){
+    const landscape=siteLayout(width,height);assert.equal(landscape.landscape,true);assert.equal(landscape.plots.length,13);assert.equal(landscape.facilities.length,7);
+    assert.equal(new Set([...landscape.plots,...landscape.facilities].map(p=>p.join(','))).size,20);
+    for(let i=0;i<12;i++){if(i%4<3)assert.ok(landscape.plots[i+1][0]>landscape.plots[i][0]);else assert.ok(landscape.plots[i+1][1]>landscape.plots[i][1]);}
+    assert.ok(landscape.facilities[0][0]<landscape.plots[0][0]);
+    assert.ok(landscape.facilities[3][0]>landscape.plots[3][0]);
   }
   assert.equal(baseline.plots.length,13);
-  assert.equal(baseline.facilities.length,4);
-  assert.equal(new Set([...baseline.plots,...baseline.facilities].map(p=>p.join(','))).size,17);
-  assert.deepEqual(processes.map(p=>p.key),['generation','review','stock','submission']);
+  assert.equal(baseline.facilities.length,7);
+  assert.equal(baseline.cols,4);
+  assert.equal(new Set([...baseline.plots,...baseline.facilities].map(p=>p.join(','))).size,20);
+  assert.deepEqual(processes.map(p=>p.key),['generation','review','stock','submission','inspection','archive','revenue']);
 });
 
-test('네 지구는 4/3/3/3 계정과 자기 공정 하나를 지니고 다른 계정의 신원을 재사용하지 않는다', () => {
-  const layout=siteLayout(390,844),seen=[];
-  districtRanges.forEach(([first,last],district)=>{
-    const [cx,cz]=districtCenters[district];
-    const accounts=Array.from({length:last-first+1},(_,i)=>first+i);
-    assert.equal(accounts.length,district===0?4:3);
-    for(const number of accounts){
-      assert.equal(accountDistrict(number),district);
-      const [x,z]=layout.plots[number-1];
-      assert.ok(Math.abs(x-cx)<=6 && z>=cz-2 && z<=cz+11);
-      seen.push(number);
-    }
-    assert.deepEqual(layout.facilities[district],[cx,cz-11]);
-  });
-  assert.deepEqual(seen,Array.from({length:13},(_,i)=>i+1));
+test('13개 계정은 같은 연속 단지에 있고 마지막 창고가 제출처와 같은 행을 공유한다', () => {
+  const layout=siteLayout(390,844);
+  assert.deepEqual(districtRanges,[[1,13]]);
+  assert.equal(districtCenters.length,1);
+  for(let number=1;number<=13;number++){
+    assert.equal(accountDistrict(number),0);
+    const [x,z]=layout.plots[number-1];
+    assert.ok(x-4.1>=layout.minX && x+4.1<=layout.maxX);
+    assert.ok(z-3.6>=layout.minZ && z+3.6<=layout.maxZ);
+  }
+  assert.equal(layout.plots[12][1],layout.facilities[3][1]);
+  assert.ok(layout.facilities[0][1]<layout.plots[0][1]);
+  assert.ok(layout.facilities[3][1]<layout.facilities[4][1]);
+  assert.ok(layout.facilities[4][1]<layout.facilities[5][1]);
+  assert.ok(layout.facilities[5][1]<layout.facilities[6][1]);
 });
 
 test('360×640에서 선택 트레이 위에 다섯 시설의 최소 48px 표찰이 겹치지 않고 들어간다', () => {
@@ -63,4 +69,13 @@ test('가장자리 확대 화면에서도 겹친 시설은 완전한 터치 영�
     {id:'4',x:315,y:412,width:64,height:52},
   ],safe);
   assertTargets(labels,safe,4);
+});
+
+
+test('짧은 가로 화면은 13창고를 7×2 또는 5×3으로 배치해 44px 조작 공간을 확보한다',()=>{
+  const phone=siteLayout(844,390),small=siteLayout(640,360);
+  assert.equal(phone.cols,7);assert.equal(small.cols,5);
+  assert.equal(phone.compactLandscape,true);assert.equal(small.compactLandscape,true);
+  assert.equal(new Set(phone.plots.map(p=>p[1])).size,2);assert.equal(new Set(small.plots.map(p=>p[1])).size,3);
+  for(const layout of [phone,small]){assert.equal(layout.plots.length,13);assert.equal(new Set(layout.plots.map(p=>p.join(','))).size,13);}
 });

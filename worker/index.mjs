@@ -1,4 +1,5 @@
 import { management } from "./management.mjs";
+import { revenue } from "./revenue.mjs";
 const json = (data, status = 200, extra = {}) =>
   new Response(JSON.stringify(data), {
     status,
@@ -165,7 +166,7 @@ async function queue(db, id, action, payload) {
   return checkedCommand(await commandRequest(db, id), action, payload);
 }
 
-export async function api(req, env) {
+async function routeApi(req, env) {
   const url = new URL(req.url),
     path = url.pathname,
     db = env.DB;
@@ -365,7 +366,7 @@ export async function api(req, env) {
       req.method !== "HEAD" &&
       req.headers.get("Origin") !== url.origin
     )
-      return json({ error: "관제 화면에서 요청하세요." }, 403);
+      return json({ error: "관제 화면에서 요청하세요.", ...(path === "/api/revenue" ? { code: "ORIGIN_REQUIRED", message: "관제 화면에서 요청하세요.", details: null } : {}) }, 403);
     if (path === "/api/login" && req.method === "POST") {
       const ip = req.headers.get("CF-Connecting-IP") || "local";
       const attempt = await first(db, "SELECT * FROM attempts WHERE ip=?", ip);
@@ -416,7 +417,9 @@ export async function api(req, env) {
         )));
     if (path === "/api/session")
       return json({ authenticated: !!session, local });
-    if (!session) return json({ error: "로그인이 필요합니다." }, 401);
+    if (!session) return json({ error: "로그인이 필요합니다.", ...(path === "/api/revenue" ? { code: "AUTH_REQUIRED", message: "로그인이 필요합니다.", details: null } : {}) }, 401);
+    if (path === "/api/revenue")
+      return await revenue(req, url, db, { json, body, all, first, now });
     if (path === "/api/management" || path.startsWith("/api/management/"))
       return await management(req, url, db, { json, body, text, all, first, run, now });
     if (path === "/api/logout" && req.method === "POST") {
@@ -609,6 +612,22 @@ export async function api(req, env) {
       error.status || 500,
     );
   }
+}
+
+export async function api(req, env) {
+  if (new URL(req.url).pathname !== "/api/revenue") return routeApi(req, env);
+  const started = performance.now(), requestId = crypto.randomUUID();
+  let response = await routeApi(req, env);
+  if (response.status >= 400) {
+    const value = await response.json();
+    if (!value.code) response = json({ ...value, code: response.status >= 500 ? "REVENUE_UNAVAILABLE" : "REVENUE_REJECTED", message: value.error, details: null }, response.status);
+    else response = json(value, response.status);
+  }
+  response.headers.set("X-Request-Id", requestId);
+  console.info(JSON.stringify({ event: "revenue_request", request_id: requestId,
+    user_id: response.status === 401 || response.status === 403 ? "unverified" : env.LOCAL_MODE === true ? "local" : "authenticated",
+    method: req.method, status: response.status, duration_ms: Math.round((performance.now() - started) * 100) / 100 }));
+  return response;
 }
 
 export default {

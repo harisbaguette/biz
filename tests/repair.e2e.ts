@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { baselineWorld, enter, fixture, visitDistrict } from "./game-fixture";
+import { baselineWorld, enter, fixture, pinchZoom } from "./game-fixture";
 
 test.beforeAll(async () => { await baselineWorld(); });
 
@@ -38,41 +38,46 @@ test("웹그래픽 초기화에 실패해도 작업동을 찾고 계정 업무�
   await expect(page.getByRole("button", { name: "재확인", exact: true })).toBeEnabled();
 });
 
-test("확대는 정지 프레임의 3D 장면을 다시 렌더하고 전체 보기로 복귀한다", async ({ page }) => {
+test("두 손가락 확대는 정지 프레임의 3D 장면을 다시 그리고 전체 보기로 복귀한다", async ({ page }) => {
   await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await enter(page);
   const before = await page.locator("canvas").screenshot();
   const frames = await page.evaluate(() => (window as any).__bizWorld.totalFrames);
-  await page.getByRole("button", { name: "확대", exact: true }).click();
+  await pinchZoom(page);
   await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.zoom)).toBeGreaterThan(1);
   const after = await page.locator("canvas").screenshot();
   expect(after.equals(before)).toBe(false);
   expect(await page.evaluate(() => (window as any).__bizWorld.totalFrames)).toBeGreaterThan(frames);
-  await page.getByRole("button", { name: "현재 지구 보기", exact: true }).click();
+  await expect(page.locator("[data-account]")).toHaveCount(13);
+  await page.getByRole("button", { name: "13개 계정 전체 보기" }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.zoom)).toBeCloseTo(1, 1);
 });
 
-test("검색어를 보존하고 공정 창고와 일정이 계정 범위 없이 열린다", async ({ page }) => {
-  await fixture(page);
+test("계정 창고의 검색어를 보존하고 제출 일정도 같은 계정 범위로 연다", async ({ page }) => {
+  const { baseline } = await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await enter(page);
-  await page.getByRole("button", { name: /제출 가능한 재고/ }).click();
+  const accountId = baseline.snapshot.accounts[0].id;
+  await page.locator(`[data-account="${accountId}"]`).click();
   await page.getByRole("button", { name: "창고 열기", exact: true }).click();
   await page.getByRole("textbox", { name: "재고 검색" }).fill("재고검색유지검증");
   await expect(page.getByText("조건에 맞는 재고가 없습니다.")).toBeVisible();
   await page.getByRole("button", { name: "패널 닫기" }).click();
-  await page.getByRole("button", { name: /제출 가능한 재고/ }).click();
   await page.getByRole("button", { name: "창고 열기", exact: true }).click();
   await expect(page.getByRole("textbox", { name: "재고 검색" })).toHaveValue("재고검색유지검증");
-  await expect(page.locator(".scope-line")).toContainText("모든 작업동");
+  await expect(page.locator(".scope-line")).toContainText("1번 계정");
   await page.getByRole("button", { name: "패널 닫기" }).click();
   const closeFacility = page.locator(".game-tray .tray-heading button");
   if (await closeFacility.count()) await closeFacility.click();
-  await visitDistrict(page, "항구");
+  await page.locator(`[data-account="${accountId}"]`).click();
+  await page.locator(".game-tray .tray-next").click();
+  await expect(page.locator(".scope-line")).toContainText("1번 계정");
+  await page.getByRole("button", { name: "패널 닫기" }).click();
+  await page.getByRole("button", { name: "시설 선택 닫기" }).click();
   await page.locator('[data-process="submission"]').click();
   await page.getByRole("button", { name: "제출 일정", exact: true }).click();
-  await expect(page.locator(".scope-line")).toContainText("모든 작업동");
+  await expect(page.locator(".scope-line")).toContainText("모든 계정");
 });
 
 test("실패 예약의 이유를 보고 다시 예약한 뒤 기존 실패 기록을 취소 이력에 남긴다", async ({ page }) => {
@@ -80,7 +85,6 @@ test("실패 예약의 이유를 보고 다시 예약한 뒤 기존 실패 기�
   await page.setViewportSize({ width: 390, height: 844 });
   await DB.prepare("INSERT INTO schedules VALUES(?,?,?,?,?,?,?)").bind("failed-review", "1", "실패 원인 재현", new Date().toISOString(), "recheck", "failed", new Date().toISOString()).run();
   await enter(page);
-  await visitDistrict(page, "항구");
   await page.locator('[data-process="submission"]').click();
   await page.getByRole("button", { name: "제출 일정", exact: true }).click();
   const row = page.locator(".timeline-item").filter({ hasText: "실패 원인 재현" });
@@ -103,17 +107,16 @@ test("실패 예약의 이유를 보고 다시 예약한 뒤 기존 실패 기�
   await expect(history).toContainText("취소");
 });
 
-test("계정 선택 시 시설 강조가 현재 지구에 맞게 이동한다", async ({ page }) => {
+test("계정 창고를 선택해도 다른 창고가 유지되고 제출 시설을 이어서 고른다", async ({ page }) => {
   const { baseline } = await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await enter(page);
-  await visitDistrict(page, "공방");
-  await page.locator('[data-process="stock"]').click();
-  await expect(page.locator('[data-process="stock"]')).toHaveClass(/selected/);
-  await page.getByRole("button", { name: "시설 선택 닫기" }).click();
-  await visitDistrict(page, "아틀리에");
   const accountId = baseline.snapshot.accounts[0].id;
   await page.locator(`[data-account="${accountId}"]`).click();
   await expect(page.locator(`[data-account="${accountId}"]`)).toHaveClass(/selected/);
-  await expect(page.locator('[data-process="stock"]')).not.toHaveClass(/selected/);
+  await expect(page.locator("[data-account]")).toHaveCount(13);
+  await page.getByRole("button", { name: "시설 선택 닫기" }).click();
+  await page.locator('[data-process="submission"]').click();
+  await expect(page.locator('[data-process="submission"]')).toHaveClass(/selected/);
+  await expect(page.locator(`[data-account="${accountId}"]`)).not.toHaveClass(/selected/);
 });

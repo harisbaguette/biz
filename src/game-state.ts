@@ -1,6 +1,7 @@
 import { laneCondition, uploadCondition, severity, n } from './data.ts';
 import type { Account, Command, Snapshot } from './types';
-export type ProcessKey = 'generation' | 'review' | 'stock' | 'submission';
+import { flowTotals } from './operations-state.ts';
+export type ProcessKey = 'generation' | 'review' | 'stock' | 'submission' | 'inspection' | 'archive' | 'revenue';
 /** One observation drives the building, district badge and action tray. */
 export function processState(key: ProcessKey, snapshot: Snapshot, stale: boolean) {
   if (stale) return { label: '연결 확인 필요', tone: 'unknown', active: false };
@@ -11,6 +12,9 @@ export function processState(key: ProcessKey, snapshot: Snapshot, stale: boolean
     return { ...current, active: current.tone === 'active' };
   }
   if (key === 'stock') return { label: `제출 가능 ${n(snapshot.accounts.reduce((v, a) => v + a.ready, 0))}개`, tone: 'normal', active: false };
+  if (key === 'inspection') return { label: `심사 중 ${n(flowTotals(snapshot).inspection)}개`, tone: 'normal', active: false };
+  if (key === 'archive') return { label: `승인·공개 ${n(flowTotals(snapshot).archived)}개`, tone: 'normal', active: false };
+  if (key === 'revenue') return { label: '계정별 월 수익 장부', tone: 'normal', active: false };
   const health = uploadCondition(snapshot);
   const issues = snapshot.accounts.filter(a => ['warning', 'danger'].includes(severity(a))).length;
   return { label: health.issue ? health.label : issues ? `${issues}개 계정 확인` : health.label,

@@ -1,25 +1,36 @@
-export type ProcessKey = "generation" | "review" | "stock" | "submission";
+export type ProcessKey = "generation" | "review" | "stock" | "submission" | "inspection" | "archive" | "revenue";
 export const processes: { key: ProcessKey; name: string; model: string }[] = [
-  { key: "generation", name: "제작", model: "building-A" },
-  { key: "review", name: "검수", model: "building-B" },
-  { key: "stock", name: "비축", model: "building-F" },
-  { key: "submission", name: "제출·심사", model: "building-H" },
+  { key: "generation", name: "생산", model: "factory" },
+  { key: "review", name: "제작 검수", model: "quality-gate" },
+  { key: "stock", name: "재고", model: "warehouse" },
+  { key: "submission", name: "제출", model: "dispatch" },
+  { key: "inspection", name: "심사", model: "inspection" },
+  { key: "archive", name: "승인·공개", model: "archive" },
+  { key: "revenue", name: "수익", model: "treasury" },
 ];
 export type Position = readonly [number, number];
-export const districtRanges = [[1, 4], [5, 7], [8, 10], [11, 13]] as const;
-export const districtCenters: Position[] = [[-16, 18], [16, 18], [-16, -18], [16, -18]];
-export function accountDistrict(number: number) { return number <= 4 ? 0 : number <= 7 ? 1 : number <= 10 ? 2 : 3; }
-/** Physical neighbourhoods are stable across devices; cameras adapt, never account identity. */
-export function siteLayout(_width: number, _height: number) {
-  const plots: Position[] = [];
-  const facilities: Position[] = [];
-  districtCenters.forEach(([x, z], district) => {
-    const [first, last] = districtRanges[district];
-    const local: Position[] = district === 0 ? [[-5.5,-1], [5.5,-1], [-5.5,9], [5.5,9]] : [[-5.5,0],[5.5,0],[0,10]];
-    for (let number=first; number<=last; number++) { const p=local[number-first]; plots[number-1]=[x+p[0],z+p[1]]; }
-    facilities.push([x, z-11]);
-  });
-  return { plots, facilities, minX:-30, maxX:30, minZ:-35, maxZ:35, cols:2, districts:districtCenters };
+/** Compatibility for saved clients. Accounts now share one continuous site. */
+export const districtRanges = [[1, 13]] as const;
+export const districtCenters: Position[] = [[0, 4]];
+export function accountDistrict(_number: number) { return 0; }
+/** All 13 warehouses fit the same connected campus; no account is paged away. */
+export function siteLayout(width: number, height: number) {
+  const landscape=width>=600 && width>height*1.2;
+  if(landscape && height<500){
+    const cols=width<740?5:7,spacing=width<740?15:10;
+    const plots:Position[]=Array.from({length:13},(_,i)=>[-30+(i%cols)*spacing,-9+(Math.floor(i/cols))*18-(cols===5?9:0)]);
+    const facilities:Position[]=[[-48,-11],[-48,11],[-5,-22],[44,0],[57,0],[70,0],[83,0]];
+    return {plots,facilities,facilityRotations:[0,0,0,Math.PI/2,Math.PI/2,Math.PI/2,Math.PI/2],minX:-62,maxX:102,minZ:-26,maxZ:28,cols,districts:districtCenters,landscape,compactLandscape:true};
+  }
+  if(landscape){
+    const plots:Position[]=Array.from({length:13},(_,i)=>[-25+(i%4)*9.6,-13+Math.floor(i/4)*9]);
+    const facilities:Position[]=[[-46,-10],[-46,9],[-10,-20],[18,0],[31,0],[44,0],[57,0]];
+    return {plots,facilities,facilityRotations:[0,0,0,Math.PI/2,Math.PI/2,Math.PI/2,Math.PI/2],minX:-57,maxX:66,minZ:-25,maxZ:29,cols:4,districts:districtCenters,landscape,compactLandscape:false};
+  }
+  const plots: Position[] = Array.from({ length:13 },(_,i)=>[-14.4+(i%4)*9.6,-17+Math.floor(i/4)*11]);
+  // The 13th warehouse shares its row with the dispatch depot, keeping the line connected.
+  const facilities: Position[] = [[-8,-30],[10,-30],[0,-22.7],[5.5,16],[0,29],[0,40],[0,51]];
+  return { plots, facilities, minX:-22.5, maxX:22.5, minZ:-37, maxZ:58, cols:4, districts:districtCenters,facilityRotations:[0,0,0,0,0,0,0],landscape,compactLandscape:false };
 }
 // Default positions remain available to small read-only consumers.
 export const plots = siteLayout(1440, 900).plots;

@@ -77,7 +77,7 @@ export function status(a: Account) {
   return statuses[a.status] || "상태 확인";
 }
 export const isStale = (s: Snapshot | null) =>
-  !s || Date.now() - Date.parse(s.receivedAt) > 180000;
+  !s || !Number.isFinite(Date.parse(s.receivedAt)) || Date.now() - Date.parse(s.receivedAt) > 180000;
 export function assetStatus(asset: Asset) {
   if (asset.state === "ready") return asset.eligible ? "제출 가능" : "제출 제외";
   return statuses[asset.state] || "상태 확인";

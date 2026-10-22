@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { baselineWorld, enter, fixture, visitDistrict } from "./game-fixture";
+import { baselineWorld, enter, fixture, pinchZoom } from "./game-fixture";
 
 test.beforeAll(async () => { await baselineWorld(); });
 
@@ -62,29 +62,29 @@ test("WebGL을 사용할 수 없어도 13계정 목록에서 업무를 하고 3D
   await expect(page.getByRole("region", { name: "시설 행동" })).toContainText("1번 계정");
 });
 
-test("확대와 전체 보기, 지도 자원 표시는 실제 카메라와 건물 상태를 바꾼다", async ({ page }) => {
+test("두 손가락 확대와 전체 보기 복귀는 실제 카메라를 바꾸고 재고 수량은 유지한다", async ({ page }) => {
   await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await enter(page);
   const before = await page.locator("canvas").screenshot();
-  await page.getByRole("button", { name: "확대", exact: true }).click();
+  const stockBefore = await page.evaluate(() => (window as any).__bizWorld.cargo.map((item: any) => item.ready));
+  await pinchZoom(page);
   await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.zoom)).toBeGreaterThan(1);
   const after = await page.locator("canvas").screenshot();
   expect(after.equals(before)).toBe(false);
-  await page.getByRole("button", { name: "현재 지구 보기", exact: true }).click();
+  await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.cargo.map((item: any) => item.ready))).toEqual(stockBefore);
+  await page.getByRole("button", { name: "13개 계정 전체 보기" }).click();
   await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.zoom)).toBeCloseTo(1, 1);
-  await page.getByRole("button", { name: "지도 표시", exact: true }).click();
-  await expect(page.locator(".world")).toHaveAttribute("data-layer", "stock");
 });
 
-test("선택한 시설은 현재 지구와 연결되고 포인터 이동으로 화면을 탐색한다", async ({ page }) => {
+test("13번 계정을 선택해도 전체 사업장이 유지되고 포인터 이동으로 세계를 탐색한다", async ({ page }) => {
   const { baseline } = await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
   await enter(page);
-  await visitDistrict(page, "항구");
   await page.locator(`[data-account="${baseline.snapshot.accounts[12].id}"]`).click();
-  await expect(page.getByRole("heading", { name: /항구/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /13번 계정/ })).toBeVisible();
   await expect(page.getByRole("region", { name: "시설 행동" })).toContainText("13번 계정");
+  await expect(page.locator("[data-account]")).toHaveCount(13);
   const before = await page.evaluate(() => (window as any).__bizWorld.camera.matrixWorld.join(","));
   const canvas = page.locator("canvas");
   const box = await canvas.boundingBox();

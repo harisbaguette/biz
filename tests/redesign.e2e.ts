@@ -10,7 +10,7 @@ test("문제 계정의 섬 경고를 열면 재고와 복구 지시가 이어진
   await page.getByRole("button", { name: /확인할 일/ }).click();
   await expect(page.getByRole("region", { name: "시설 행동" })).toContainText("1번 계정");
   await expect(page.getByRole("button", { name: "재확인", exact: true })).toBeVisible();
-  await page.getByRole("button", { name: "재고 보기", exact: true }).click();
+  await page.getByRole("button", { name: /1번 계정 재고 \d+개 보기/ }).click();
   await expect(page.locator(".panel-inventory")).toBeVisible();
   await expect(page.getByRole("button", { name: "패널 닫기" })).toBeVisible();
 });
@@ -37,7 +37,7 @@ test("태블릿 세로 재고는 화면 너비 안에 카드와 검색을 유지
   await page.setViewportSize({ width: 768, height: 1024 });
   await enter(page);
   await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
-  await page.getByRole("button", { name: "재고 보기", exact: true }).click();
+  await page.getByRole("button", { name: /1번 계정 재고 \d+개 보기/ }).click();
   await page.getByRole("button", { name: "전체", exact: true }).click();
   const widths = await page.locator(".inventory-grid > button").evaluateAll(items => items.map(item => item.getBoundingClientRect().width));
   expect(widths.length).toBeGreaterThan(3);
@@ -70,7 +70,7 @@ test("잘못된 예정 시각이 있어도 섬·재고 업무를 쓸 수 있고 
   await expect(page.locator(".panel-automation")).toContainText("예정 없음");
   await page.getByRole("button", { name: "패널 닫기" }).click();
   await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
-  await page.getByRole("button", { name: "재고 보기", exact: true }).click();
+  await page.getByRole("button", { name: /1번 계정 재고 \d+개 보기/ }).click();
   await expect(page.getByRole("textbox", { name: "재고 검색" })).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -4,6 +4,8 @@ import { api } from "../worker/index.mjs";
 // @ts-expect-error SQLite adapter is isolated per test.
 import { database } from "./db.mjs";
 
+// Kept as test-fixture aliases for management.e2e.ts, which imports index 1 to
+// preserve its historical setup order. The product no longer has districts.
 export const districts = [
   { name: "아틀리에", ids: ["1", "2", "3", "4"], process: "generation" },
   { name: "스튜디오", ids: ["5", "6", "7"], process: "review" },
@@ -13,7 +15,8 @@ export const districts = [
 
 let baselinePromise: Promise<any> | null = null;
 export function baselineWorld() {
-  baselinePromise ||= fetch("http://127.0.0.1:4317/api/world").then(async r => {
+  const origin = process.env.BIZ_TEST_ORIGIN || "http://127.0.0.1:4317";
+  baselinePromise ||= fetch(`${origin}/api/world`).then(async r => {
     if (!r.ok) throw new Error(`isolated baseline HTTP ${r.status}`);
     return r.json();
   });
@@ -65,7 +68,47 @@ export async function enter(page: Page) {
 }
 
 export async function visitDistrict(page: Page, name: string) {
-  await page.getByRole("button", { name: `${name} 지구`, exact: true }).click();
-  await page.waitForFunction(expected => (window as any).__bizWorld?.district === expected,
-    districts.findIndex(d => d.name === name));
+  void name;
+  await page.waitForFunction(() => (window as any).__bizWorld?.ready === true);
+  await page.locator("[data-account]").first().waitFor({ state: "visible" });
+}
+
+export async function pinchZoom(page: Page) {
+  const canvas = await page.locator(".world canvas").boundingBox();
+  if (!canvas) throw new Error("3D canvas is not available");
+  if (page.context().browser()?.browserType().name() === "webkit") {
+    await page.evaluate(({ x, y }) => {
+      const element = document.querySelector<HTMLCanvasElement>(".world canvas");
+      if (!element) throw new Error("3D canvas is not available");
+      // WebKit has no Playwright CDP touch injection; send a paired touch-pointer
+      // sequence through Three.js OrbitControls and the world's real pointer listeners.
+      const originalCapture = element.setPointerCapture;
+      element.setPointerCapture = () => {};
+      const pointer = (type: string, id: number, clientX: number) => element.dispatchEvent(new PointerEvent(type, {
+        pointerId: id, pointerType: "touch", isPrimary: id === 1, clientX, clientY: y,
+        pageX: clientX, pageY: y, button: 0, buttons: type === "pointerup" ? 0 : 1,
+        bubbles: true, cancelable: true,
+      }));
+      try {
+        pointer("pointerdown", 1, x - 18); pointer("pointerdown", 2, x + 18);
+        pointer("pointermove", 1, x - 60); pointer("pointermove", 2, x + 60);
+        pointer("pointerup", 2, x + 60); pointer("pointerup", 1, x - 60);
+      } finally {
+        element.setPointerCapture = originalCapture;
+      }
+    }, { x: Math.round(canvas.x + canvas.width * 0.5), y: Math.round(canvas.y + canvas.height * 0.48) });
+    return;
+  }
+  const session = await page.context().newCDPSession(page);
+  const x = Math.round(canvas.x + canvas.width * 0.5), y = Math.round(canvas.y + canvas.height * 0.48);
+  await session.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [
+    { id: 1, x: x - 18, y, radiusX: 8, radiusY: 8, force: 1 },
+    { id: 2, x: x + 18, y, radiusX: 8, radiusY: 8, force: 1 },
+  ] });
+  await session.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [
+    { id: 1, x: x - 60, y, radiusX: 8, radiusY: 8, force: 1 },
+    { id: 2, x: x + 60, y, radiusX: 8, radiusY: 8, force: 1 },
+  ] });
+  await session.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+  await session.detach();
 }

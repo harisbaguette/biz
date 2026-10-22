@@ -129,6 +129,7 @@ export interface WorldData {
   scheduleHistory?: { total: number; hasMore: boolean; nextCursor: string | null };
 }
 export type Panel =
+  | "revenue"
   | "management"
   | "account"
   | "accounts"

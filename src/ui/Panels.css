@@ -160,3 +160,12 @@
 
 .panel .island-tools { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:var(--p-space-sm); margin-bottom:var(--p-space-sm); }
 .panel .island-tools .ds-button { min-width:0; flex-wrap:wrap; white-space:normal; padding-inline:var(--p-space-xs); }
+
+/* The account window follows the same physical stock → inspection → archive flow. */
+.panel .account-flow-strip{display:flex;align-items:center;justify-content:space-between;gap:var(--p-space-2xs);padding:var(--p-space-sm);margin-block:var(--p-space-md);background:var(--p-image-well);border:var(--p-border-width) solid var(--p-control-border);border-radius:var(--p-radius-sm);box-shadow:var(--p-inset)}
+.panel .account-flow-strip>span{display:grid;justify-items:center;gap:var(--p-space-2xs);min-width:0}.panel .account-flow-strip strong{font:var(--p-type-stat)}.panel .account-flow-strip small{font-size:var(--p-text-sm);color:var(--p-muted)}.panel .review-deadline{font-size:var(--p-text-body);color:var(--p-muted);margin-bottom:var(--p-space-sm)}
+.game-shell .panel :is(.account-list>button,.inventory-grid>button,.mini-gallery button,.timeline-item,.business-row,.alert-row,.command-list>div,.command-progress,.account-stock,.stage-counts>div){border-radius:var(--game-notch);border:var(--p-border-width) solid var(--p-line);box-shadow:var(--p-inset)}
+.game-shell .panel .inventory-grid>button{border:var(--p-border-width-strong) solid var(--p-line);background:var(--p-high);box-shadow:var(--p-control-shadow)}.game-shell .panel .inventory-grid>button:hover{border-color:var(--p-control-border)}.game-shell .panel .inventory-grid .asset-thumb{border-radius:0;border-bottom:var(--p-border-width) solid var(--p-line)}
+.game-shell .panel .filter-tabs .ui-block-list__chips{border-radius:var(--game-notch);border:var(--p-border-width) solid var(--p-line);box-shadow:var(--p-inset)}.game-shell .panel .filter-tabs button{border-radius:var(--game-notch)}.game-shell .panel .account-stock{background:var(--p-soft)}
+
+.panel .world-view-settings{display:grid;gap:var(--p-space-sm);margin-block:var(--p-space-sm)}.panel .world-view-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--p-space-xs)}.panel .world-view-buttons button{display:flex;flex-wrap:wrap;padding-inline:var(--p-space-2xs);white-space:normal;min-width:0}.app.compact-text .panel .world-view-buttons{grid-template-columns:1fr}

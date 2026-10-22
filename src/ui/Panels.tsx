@@ -6,8 +6,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Factory,
+  Focus,
+  Minus,
   Gamepad2,
-  History,
   Image,
   KeyRound,
   Layers3,
@@ -23,6 +24,7 @@ import {
   X,
 } from "./Icons";
 import type { Account, Panel, WorldData, Schedule } from "../types";
+import type { RevenueLedger } from "../finance-types";
 import {
   accountLabel,
   assetStatus,
@@ -43,6 +45,9 @@ import {
 } from "../data";
 import { Empty, IconButton, Modal, Thumb } from "./Primitives";
 import { Management } from "./Management";
+import { Finance } from "./Finance";
+import { accountFlow, currentAssets, expectedDateLabel } from "../operations-state";
+import { processState, type ProcessKey } from "../game-state";
 import { Button, Input, Select, Switch } from "../design-system/components";
 import "./Panels.css";
 
@@ -57,6 +62,7 @@ interface Props {
   stale: boolean;
   close: () => void;
   select: (id: string) => void;
+  clearScope?: () => void;
   open: (p: Panel) => void;
   refresh: () => Promise<void>;
   toast: (s: string, tone?: "success" | "error" | "info") => void;
@@ -67,7 +73,12 @@ interface Props {
   setInventory: (next: { query: string; filter: string; page: number }) => void;
   activitySince: number;
   onAcknowledge: () => void;
-  activeProcess?: "generation" | "review" | "stock" | "submission" | null;
+  activeProcess?: ProcessKey | null;
+  viewControls?: { reset: () => void; zoom: (delta: number) => void };
+  onRevenueChanged?: (ledger: RevenueLedger) => void;
+  onRevenueAccountChange?: (accountId: string) => void;
+  revenueAccountId?: string | null;
+  revenueYear?: number;
   canLogout: boolean;
   logout: () => Promise<void>;
 }
@@ -83,13 +94,15 @@ export function Panels(p: Props) {
     const trap = (event: KeyboardEvent) => {
       if (document.querySelector('dialog[open]')) return;
       if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current(); return; }
-      if (event.key !== 'Tab') return;
+      if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
       const elements = [...(panelRoot.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]') || [])].filter(node => node.getClientRects().length > 0 && !node.closest('[hidden]'));
-      if (!elements.length) { event.preventDefault(); heading.current?.focus(); return; }
-      const first = elements[0], last = elements[elements.length - 1], active = document.activeElement;
-      if (!elements.includes(active as HTMLElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
-      else if (event.shiftKey && active === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+      event.preventDefault(); event.stopPropagation();
+      if (!elements.length) { heading.current?.focus(); return; }
+      // Cycle explicitly: Safari's system Tab preference can otherwise skip
+      // buttons and leave a modal even when the DOM has inert siblings.
+      const index = elements.indexOf(document.activeElement as HTMLElement);
+      const next = index < 0 ? (event.shiftKey ? elements.length - 1 : 0) : (index + (event.shiftKey ? -1 : 1) + elements.length) % elements.length;
+      elements[next].focus();
     };
     document.addEventListener('keydown', trap, true);
     return () => {
@@ -127,7 +140,9 @@ export function Panels(p: Props) {
   const s = p.data.snapshot!,
     a = p.selected,
     accounts = s.accounts;
+  const accountMatches = accounts.filter(v => `${accountLabel(v)} ${v.email || ""}`.toLocaleLowerCase().includes(accountQuery.trim().toLocaleLowerCase()));
   const upload = uploadCondition(s);
+  const flow = a ? accountFlow(a, s, p.stale) : null;
   const accountCommand = a ? p.data.commands.find(v => v.action === "recheck" && String(v.payload.accountId) === a.id) : undefined;
   const accountPending = accountCommand?.status === "queued";
   const schedules = p.data.schedules.filter(v => !a || v.account_id === a.id);
@@ -143,13 +158,14 @@ export function Panels(p: Props) {
   }
   const titles: Record<string, string> = {
     account: a ? accountLabel(a) : "계정",
-    accounts: "13개 작업동",
+    accounts: "13개 계정 창고",
     inventory: "재고 창고",
     schedule: "일정",
     activity: "최근 변화",
     alerts: "확인할 일",
     automation: "자동 운영",
-    businesses: "섬 메뉴",
+    businesses: "운영실",
+    revenue: "월별 수익 기록부",
     management: "운영 계획·보고",
   };
   async function execute(action: string, payload: Record<string, unknown>) {
@@ -202,13 +218,17 @@ export function Panels(p: Props) {
       p.toast((e as Error).message, "error");
     }
   }
-  const scoped = s.assets.filter(
+  const scoped = currentAssets(s).filter(
     (i) =>
       (!a || i.accountId === a.id) &&
       (filter === "all" || filter === "ready"
         ? filter === "all" || i.eligible
         : filter === "review"
-          ? ["submitted", "approved"].includes(i.state)
+          ? i.state === "submitted"
+          : filter === "approved"
+          ? i.state === "approved"
+          : filter === "archive"
+          ? ["approved", "published"].includes(i.state)
           : filter === "excluded"
             ? i.state === "ready" && !i.eligible
             : filter === "hold"
@@ -235,7 +255,7 @@ export function Panels(p: Props) {
     ...laneCondition(value, s.automation.productionEnabled),
   }));
   const issueLanes = lanes.filter((l) => l.issue);
-  const activeAsset = s.assets.find((v) => v.id === assetId);
+  const activeAsset = currentAssets(s).find((v) => v.id === assetId);
   const previewIds = (
     activeAsset && p.panel
       ? [activeAsset.id]
@@ -263,7 +283,7 @@ export function Panels(p: Props) {
           <div>
             {p.panel === "account" && a && (
               <span className="facility-code">
-                작업동 {a.number.toString().padStart(2, "0")}
+                계정 창고 {a.number.toString().padStart(2, "0")}
               </span>
             )}
             <h2 id={headingId} className="ui-sheet__title" ref={heading} tabIndex={-1}>
@@ -316,6 +336,8 @@ export function Panels(p: Props) {
               </div>
               <p className="stock-target">비축 목표 {n(a.target)}개</p>
               <div className="account-next-submission"><CalendarDays size={18}/><span>다음 제출 예정</span><strong>{date(nextSubmission(s, a.id))}</strong></div>
+              {flow && <div className="account-flow-strip" aria-label="계정 물류 상태"><span><Package size={24}/><strong>{n(flow.ready)}</strong><small>재고</small></span><ChevronRight size={16}/><span><ShieldCheck size={24}/><strong>{n(flow.inspection)}</strong><small>심사</small></span><ChevronRight size={16}/><span><Image size={24}/><strong>{n(flow.archived)}</strong><small>승인·공개</small></span></div>}
+              {flow?.inspection ? <p className="review-deadline">심사 {expectedDateLabel(flow.reviewAt)}</p> : null}
               <div className="account-observation-summary">
                 <span>심사 자리 <strong>{a.capacity ? `${n(a.capacity.pending)} / ${n(a.capacity.limit_count)}` : "미확인"}</strong></span>
                 <small>{a.capacity ? `${date(a.capacity.observed_at, true)} 관측${Date.now() - Date.parse(a.capacity.observed_at) > 86400000 ? " · 갱신 필요" : ""}` : "원본 작업기에서 확인 필요"}</small>
@@ -329,23 +351,6 @@ export function Panels(p: Props) {
                   {accountCommand.status === "applied" && <span>{a.lastVerifiedAt && Date.parse(a.lastVerifiedAt)>Date.parse(accountCommand.created_at) ? `지시 이후 계정 확인됨 · ${date(a.lastVerifiedAt,true)}` : "지시 이후 확인 성공 대기"}</span>}
                 </div>
               )}
-              <div className="stage-counts">
-                <div>
-                  <ShieldCheck />
-                  <strong>{n(a.counts.submitted || 0)}</strong>
-                  <span>심사 중</span>
-                </div>
-                <div>
-                  <Image />
-                  <strong>{n(a.counts.published || 0)}</strong>
-                  <span>공개</span>
-                </div>
-                <div>
-                  <Package />
-                  <strong>{n((a.counts.prepared || 0) + (a.counts.uploaded || 0))}</strong>
-                  <span>제출 대기</span>
-                </div>
-              </div>
               <details className="account-records history"><summary>확인 기록</summary><DescriptionList items={[
                 ["작업기 응답", a.message || "추가 응답 없음"],
                 ["심사 자리 관측", a.capacity ? date(a.capacity.observed_at, true) : "미확인"],
@@ -358,12 +363,13 @@ export function Panels(p: Props) {
                 ["심사 안내", `${a.reviewDays}${a.reviewBasis === "business" ? "영업일" : "일"}`],
                 ...(a.reserved > 0 ? [["배정·중복·대기 제외", `${n(a.reserved)}개 제외`] as [string, ReactNode]] : []),
               ]}/>
+              <Button variant="outline" className="ui-button full" onClick={() => p.open("revenue")}><CalendarDays size={20}/> 월별 수익 기록</Button>
               <div className="account-recent"><h3 className="section-title">최근 실제 변화</h3>{s.recent.filter(v=>v.accountId===a.id).sort((x,y)=>y.recorded_at.localeCompare(x.recorded_at)).slice(0,3).map(v=><div key={v.id}><strong>{statuses[v.state] || "상태 변경"}</strong><span>{v.title}</span><small>{date(v.recorded_at,true)}</small></div>)}{!s.recent.some(v=>v.accountId===a.id)&&<p className="muted">최근 기록에 변화가 없습니다.</p>}</div>
               <div className="section-heading">
                 <h3>최근 제작물</h3>
               </div>
               <div className="mini-gallery">
-                {s.assets
+                {currentAssets(s)
                   .filter(
                     (v) =>
                       v.accountId === a.id && p.data.thumbnails.includes(v.id),
@@ -408,15 +414,13 @@ export function Panels(p: Props) {
                 <Search size={18} />
                 <Input className="ui-input"
                   aria-label="계정 검색"
-                  placeholder="화풍·계정 검색"
+                  placeholder="계정·이메일 검색"
                   value={accountQuery}
                   onChange={(e) => setAccountQuery(e.target.value)}
                 />
               </label>
               <div className="ui-block-list__body account-list">
-                {accounts
-                  .filter((v) => (accountLabel(v) + v.email).includes(accountQuery))
-                  .map((v) => (
+                {accountMatches.map((v) => (
                     <button key={v.id} onClick={() => p.select(v.id)}>
                       <span className="account-number">
                         {v.number.toString().padStart(2, "0")}
@@ -437,14 +441,15 @@ export function Panels(p: Props) {
                     </button>
                   ))}
               </div>
+              {!accountMatches.length && <Empty>일치하는 계정이 없습니다.</Empty>}
             </section>
           )}
           {p.panel === "inventory" && (
             <section className="ui-block-list inventory-block">
               <div className="scope-line">
-                <span>{a ? `${accountLabel(a)}` : "모든 작업동"}</span>
+                <span>{a ? `${accountLabel(a)}` : "모든 계정"}</span>
                 {a && (
-                  <Button variant="ghost" className="ui-button text-button" onClick={() => p.select("")}>
+                  <Button variant="ghost" className="ui-button text-button" onClick={() => p.clearScope ? p.clearScope() : p.select("")}>
                     전체 보기
                   </Button>
                 )}
@@ -464,6 +469,8 @@ export function Panels(p: Props) {
                 {[
                   ["ready", "제출 가능"],
                   ["review", "심사 중"],
+                  ["archive", "승인·공개"],
+                  ["approved", "승인 보관"],
                   ["published", "공개"],
                   ["hold", "보류"],
                   ["excluded", "제출 제외"],
@@ -524,7 +531,7 @@ export function Panels(p: Props) {
           )}
           {p.panel === "schedule" && (
             <>
-              <div className="scope-line"><span>{a ? `${accountLabel(a)}` : "모든 작업동"}</span>{a && <Button variant="ghost" className="ui-button text-button" onClick={() => p.select("")}>전체 보기</Button>}</div>
+              <div className="scope-line"><span>{a ? `${accountLabel(a)}` : "모든 계정"}</span>{a && <Button variant="ghost" className="ui-button text-button" onClick={() => p.clearScope ? p.clearScope() : p.select("")}>전체 보기</Button>}</div>
               <div className="split">
                 <span className="muted">한국 시간</span>
                 <Button variant="primary"
@@ -587,7 +594,7 @@ export function Panels(p: Props) {
               )}
               <h3 className="section-title">다음 제출 예정 · 원본 계획</h3>
               <div className="timeline">{accounts.filter(v => (!a || a.id === v.id) && nextSubmission(s,v.id)).sort((x,y) => (nextSubmission(s,x.id) || "").localeCompare(nextSubmission(s,y.id) || "")).map(v => <button className="timeline-item" key={v.id} onClick={() => p.select(v.id)}><CalendarDays size={18}/><div><strong>{accountLabel(v)}</strong><span>{date(nextSubmission(s,v.id))}</span></div><ChevronRight size={16}/></button>)}</div>
-              {!accounts.some(v => (!a || a.id === v.id) && nextSubmission(s,v.id)) && <p className="muted schedule-empty">다음 제출 예정 없음 · {a ? `${a.number}번 작업동` : `${accounts.length}개 작업동`}</p>}
+              {!accounts.some(v => (!a || a.id === v.id) && nextSubmission(s,v.id)) && <p className="muted schedule-empty">다음 제출 예정 없음 · {a ? `${a.number}번 계정 창고` : `${accounts.length}개 계정 창고`}</p>}
               <h3 className="section-title">실제 제출 · 예상 심사</h3>
               <div className="timeline">
                 {[...s.calendar].filter(v=>!v.checked_on)
@@ -746,7 +753,7 @@ export function Panels(p: Props) {
                 <span>{s.automation.scan.pending.map(number => `${number}번`).join(" → ")}</span>
                 <small>다음 계정 작업 가능 {date(s.automation.nextAt, true)} · 작업 종료 후 30분 간격</small>
               </div> : s.automation.scan?.completedAt ? <p className="muted">요청한 순차 확인 완료 · {date(s.automation.scan.completedAt, true)}</p> : null}
-              {p.activeProcess && <div className="process-focus"><Factory size={18}/><strong>{({generation:"제작소",review:"검수소",stock:"재고 창고",submission:"제출대"}[p.activeProcess])}</strong><span>{p.activeProcess === "generation" ? `${n(accounts.reduce((sum,v)=>sum+v.inProgress,0))}개 제작 중` : p.activeProcess === "review" ? `${n(s.assets.filter(v=>v.state === "generated").length)}개 검수 대기 · ${laneCondition(s.automation.lanes.review,s.automation.productionEnabled).label}` : p.activeProcess === "submission" ? upload.label : `${n(accounts.reduce((sum,v)=>sum+v.ready,0))}개 제출 가능`}</span></div>}
+              {p.activeProcess && <div className="process-focus"><Factory size={18}/><strong>{({generation:"생산 공장",review:"제작 검수",stock:"계정 창고",submission:"제출 운송",inspection:"심사대",archive:"승인·공개 창고",revenue:"월별 수익"}[p.activeProcess])}</strong><span>{processState(p.activeProcess, s, p.stale).label}</span></div>}
               {p.activeProcess === "review" && <div className="process-focus"><strong>메타데이터</strong><span>{laneCondition(s.automation.lanes.metadata,s.automation.productionEnabled).label}</span></div>}
               <div className={"command-progress " + upload.tone}><strong>제출 작업기 · {upload.label}</strong><span>{upload.detail}</span><small>상태 관측 {date(s.automation.statusObservedAt || s.automation.lastPollAt,true)}</small></div>
               {[
@@ -755,6 +762,8 @@ export function Panels(p: Props) {
                   "이미지 제작",
                   s.automation.productionEnabled,
                   Factory,
+  Focus,
+  Minus,
                 ],
                 ["upload", "제출 · 심사 확인", s.automation.enabled, Send],
               ].map(([lane, label, enabled, Icon]) => {
@@ -798,6 +807,8 @@ export function Panels(p: Props) {
                 </div>{l.issue && <p className="muted lane-recovery">{l.detail}</p>}</div>
               ))}
               <h3 className="section-title">화면</h3>
+              {p.viewControls && <div className="world-view-settings"><div className="world-view-buttons"><Button variant="outline" onClick={p.viewControls.reset}><Focus size={22}/> 전체 보기</Button><Button variant="outline" onClick={() => p.viewControls!.zoom(1)}><Plus size={22}/> 확대</Button><Button variant="outline" onClick={() => p.viewControls!.zoom(-1)}><Minus size={22}/> 축소</Button></div></div>}
+
               <div className="automation-row">
                 <Layers3 size={23} />
                 <div>
@@ -820,7 +831,7 @@ export function Panels(p: Props) {
           {p.panel === "businesses" && (
             <>
               <div className="island-tools">
-                <Button variant="outline" onClick={() => p.open("activity")}><History size={28}/> 최근 변화</Button>
+                <Button variant="outline" onClick={() => p.open("revenue")}><CalendarDays size={28}/> 월별 수익</Button>
                 <Button variant="outline" onClick={() => p.open("automation")}><Factory size={28}/> 운영실</Button>
               </div>
               <Button variant="outline" className="ui-button full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</Button>
@@ -833,7 +844,7 @@ export function Panels(p: Props) {
                 </span>
                 <div>
                   <strong>미리캔버스</strong>
-                  <span>13개 작업동 · 연결됨</span>
+                  <span>13개 계정 창고 · 연결됨</span>
                 </div>
                 <ChevronRight size={18} />
               </button>
@@ -872,6 +883,7 @@ export function Panels(p: Props) {
               </Button>
             </>
           )}
+          {p.panel === "revenue" && <Finance accounts={accounts} initialYear={p.revenueYear} initialAccountId={a?.id || p.revenueAccountId || null} toast={(message: string) => p.toast(message)} onChanged={p.onRevenueChanged} onAccountChange={p.onRevenueAccountChange}/>}
           {p.panel === "management" && <Management businesses={p.data.businesses} toast={p.toast}/>}
         </div>
         {p.panel === "account" && a && (
@@ -920,7 +932,7 @@ export function Panels(p: Props) {
             }}
           >
             <fieldset className="ui-form__set"><div className="ui-form__body">
-            <Select label="작업동" name="account" value={draft.account} onChange={e=>setDraft({...draft,account:e.target.value})} items={accounts.map(v => ({value:v.id,label:`${accountLabel(v)}`}))} />
+            <Select label="계정 창고" name="account" value={draft.account} onChange={e=>setDraft({...draft,account:e.target.value})} items={accounts.map(v => ({value:v.id,label:`${accountLabel(v)}`}))} />
             <label className="ui-field">
               할 일
               <Input className="ui-input"
@@ -1061,7 +1073,7 @@ export function Panels(p: Props) {
           {p.data.previewFailures?.includes(activeAsset.id) && <Button variant="outline" className="ui-button full" disabled={p.stale || busy} onClick={async()=> { setBusy(true); try { await post("/previews",{ids:[activeAsset.id],retry:true}); await p.refresh(); p.toast("미리보기를 다시 요청했습니다.", "success"); } catch(e) {p.toast((e as Error).message, "error");} finally {setBusy(false);} }}>미리보기 다시 가져오기</Button>}
           {assetReason(activeAsset) && <p className="asset-reason">{assetReason(activeAsset)}</p>}
           <DescriptionList items={[
-            ["작업동", `${activeAsset.accountId}번`],
+            ["계정 창고", `${activeAsset.accountId}번`],
             ["상태", assetStatus(activeAsset)],
             ["계정 배정", activeAsset.owned ? "이 계정 소유" : "다른 계정 또는 미배정"],
           ]}/>

@@ -1,6 +1,6 @@
 # 사용 에셋
 
-현재 게임은 아래 **2026-10-22 세로 모바일 재설계**의 KayKit과 지정 Pattove 정본을 사용한다. 앞부분 Kenney·Inkpress는 이전 구현의 출처 기록이며 현재 World/UI의 사용 목록이 아니다.
+산업 공간 재설계의 신규 모델은 아래 **2026-10-23 산업 공정·물류 공간**에 기록한다. 이전 단계의 출처 기록은 보존하며, 현재 씬 사용 여부는 해당 구현의 모델 목록과 함께 확인한다. UI는 지정 Pattove 정본을 사용한다.
 
 | 실제 파일 | 출처 | 권리 | 사용 |
 |---|---|---|---|
@@ -49,3 +49,28 @@
 ## 2026-10-22 브랜드·지정 디자인 시스템
 
 현재 제품 UI는 [Pattove 정본과 권리 기록](src/design-system/ASSETS.md)의 실제 부품·폰트·그림 아이콘을 사용한다. 이전 Inkpress/Lucide 기록은 교체 전 이력이다. BLUEKITE WORKS 심벌·워드마크·파비콘·OG는 이번 프로젝트에서 자체 제작했으며 [브랜드 규격](docs/BRAND.md)을 따른다.
+
+## 2026-10-23 산업 공정·물류 공간
+
+주 팩은 **Kenney Factory Kit 3.0**이다. 주택 대신 생산 설비·이송대·심사 스캐너·출하 도크를 사용한다. 기존 Kenney 차량과 같은 제작자이며, KayKit은 기존 화물 상자·팔레트 2종만 재사용한다. 재고량·가동·제출·오류는 씬에서 실제 업무 데이터에 연결한다.
+
+| 비교 후보 | 컨셉 적합도 | 커버리지 | 통일성 | 라이선스·판정 |
+|---|---|---|---|---|
+| [cremona-polygon 로우폴리 창고 미니세트](https://booth.pm/ja/items/8997220) · 일본 제작자 우선 검토 | 빈 창고·선반·팔레트 구성은 적합 | 무료 8종은 창고 소품 중심, 공장 설비·스캐너·컨베이어 없음 | 각진 산업 가구로 창고 내부에는 맞음 | 상업·수정·완성 작품 포함 허용이나 원본/수정 소재 재배포 금지. 공개 GLB 파일로 배포할 권한이 명확하지 않아 채택하지 않음. 공식 프리뷰를 직접 봄 |
+| [Kenney City Kit Industrial 2.0](https://kenney.nl/assets/city-kit-industrial) · 기존 보유 팩 | 공장 외관은 적합하나 닫힌 지붕이 실제 재고를 가림 | 외장·굴뚝·컨테이너 중심, 내부 작업 기계 부족 | Kenney 차량과 일관됨 | 공식 CC0. 신규 주 팩으로는 채택하지 않고 기존 차량만 재사용 |
+| [Kenney Factory Kit 3.0](https://kenney.nl/assets/factory-kit) | 생산·물류·심사 게이트가 각 모델의 형태와 직접 대응함 | 실제 원팩 143 GLB 중 필요한 산업 설비 16종만 추출 | 단일 제작자·공통 팔레트, 기존 Kenney 차량과 맞음 | 공식 CC0 1.0. **주 팩 채택**. 공식 샘플과 실제 GLTFLoader 렌더를 직접 비교함 |
+
+| 실제 파일 | 출처·원본 다운로드 | 권리·고지 | 가공·역할 |
+|---|---|---|---|
+| `public/assets/industrial/machine.glb`, `machine-window.glb`, `robot-arm-a.glb`, `hopper-round.glb`, `cog-a.glb`, `pipe-large-valve.glb` | [공식 팩 페이지](https://kenney.nl/assets/factory-kit) · [공식 ZIP](https://kenney.nl/media/pages/assets/factory-kit/edaac9d4f6-1777639602/kenney_factory-kit_3.0.zip) | Kenney · CC0 1.0, `Kenney-Factory-LICENSE.txt` 보존, 출처 표시 선택 | 생산 설비·가동부·투입구. 원래 남청색 팔레트를 산업 청록으로 바꾸고 안전 주황은 보존함 |
+| `conveyor-long.glb`, `conveyor-corner.glb`, `conveyor-sides.glb`, `crane-lift.glb` | 같은 공식 팩 `Models/GLB format/` | 같은 CC0 | 생산 이송·출하·적재 설비. 외부 팔레트 내장 |
+| `scanner-high.glb`, `warning-traffic.glb`, `screen-wide.glb`, `button-floor-round.glb` | 같은 공식 팩 | 같은 CC0 | 심사 게이트·운영 상태등·설비 계기판·스위치. 실제 동작은 씬이 제어하며 내장 애니메이션은 없음 |
+| `structure-wall.glb`, `door-wide-open.glb` | 같은 공식 팩 | 같은 CC0 | 창고 벽체·열린 셔터. 셔터는 문틀 전체가 아니라 상단부이므로 장면에서 벽체와 조합함 |
+| `public/assets/models/delivery.glb`, `truck.glb` | 기존 [Kenney Car Kit](https://kenney.nl/assets/car-kit) 파일 재사용 | 기존 CC0·`public/assets/models/Kenney-LICENSE.txt` 보존 | `delivery`는 밀폐 화물밴, `truck`은 픽업. 재다운로드하지 않음 |
+| `public/assets/game-v2/crate.glb`, `pallet.glb` | 기존 [KayKit Medieval Hexagon](https://github.com/KayKit-Game-Assets/KayKit-Medieval-Hexagon-Pack-1.0) 파일 재사용 | 기존 CC0·`KayKit-Hexagon-LICENSE.txt` 보존 | 적재 실루엣을 위한 화물 상자·팔레트만 보완. 중세 건물·소품은 사용하지 않음 |
+
+신규 16개 총 **482,036 bytes / 3,584 triangles**. 모두 XZ 중심·Y 바닥 0으로 정규화했고, 최대 256×256 PNG 팔레트를 GLB 안에 포함했다. 공통 재질 roughness는 .76이며 외부 이미지·버퍼 의존은 16개 중 0개다. 팔·집게 노드 계층을 보존했다. 모델별 크기·파일 크기·삼각형·노드·의미와 재사용 경로는 `public/assets/industrial/manifest.json`에 있다.
+
+다운로드는 `python3 ~/.codex/scripts/asset_fetch.py url <공식ZIP> --source "Kenney Factory Kit 3.0" --license CC0-1.0 --out file`로 공식 원본을 캐시에 받았다. 제품 폴더에는 선택한 16 GLB·manifest·라이선스만 배치한다. 원팩 ZIP·홍보 이미지·비교 이미지는 제품에 포함하지 않는다. 일본 후보 프리뷰는 검토용 `artifacts/industrial-assets/japan-reference.jpg`에만 있다.
+
+재현: `python3 scripts/pack-industrial-assets.py <공식원팩해제경로>`; 검증: `node scripts/preview-industrial-assets.mjs`. 신규 16종과 재사용 4종 **20개 중 20개**를 headless Chromium/GLTFLoader로 렌더했고, JS 오류 0·접지 20/20이다. 증거는 ignored `artifacts/industrial-assets/render-audit.json`, `all-models.png`다. 이 에셋 단독 렌더와 실제 운영 씬 연결 검증은 구분한다. 실제 씬의 모델 참조와 상태별 동작은 `src/world/World.tsx` 통합 검증에서 확인한다.

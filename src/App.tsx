@@ -1,23 +1,19 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
-import { ArrowRight, CalendarDays, ChevronRight, Check, Factory, Focus, Info, KeyRound, Layers3, Minus, Package, Plus, RefreshCw, ScanLine, Settings2, TriangleAlert, X } from "./ui/Icons";
+import { ArrowRight, CalendarDays, ChevronRight, Check, Factory, Focus, Info, KeyRound, Package, RefreshCw, ScanLine, Settings2, TriangleAlert, X } from "./ui/Icons";
 import { Button, Input } from "./design-system/components";
 import { retryWorldModule } from "./world-loader";
 import { Panels } from "./ui/Panels";
 import { IconButton, Modal } from "./ui/Primitives";
 import { date, n, isIssue, isStale, laneCondition, normalizedSnapshot, uploadCondition, severity, status, post, request, outstandingFailures, nextSubmission } from "./data";
 import type { Layer, Panel, WorldData } from "./types";
+import type { RevenueLedger } from "./finance-types";
 import type { WorldHandle } from "./world/World";
 import { processState, commandObservation } from "./game-state";
-import { accountDistrict } from "./world/layout";
+import { accountFlow, flowTotals } from "./operations-state";
+
 const InitialWorld = lazy(() => import("./world/World"));
-type Process = "generation" | "review" | "stock" | "submission";
-const districts = [
-  { name: "아틀리에", process: "generation" as Process, icon: Factory, range: "01–04" },
-  { name: "스튜디오", process: "review" as Process, icon: ScanLine, range: "05–07" },
-  { name: "공방", process: "stock" as Process, icon: Package, range: "08–10" },
-  { name: "항구", process: "submission" as Process, icon: CalendarDays, range: "11–13" },
-];
-const processNames: Record<Process, string> = { generation: "제작소", review: "검수실", stock: "재고 창고", submission: "출항장" };
+type Process = "generation" | "review" | "stock" | "submission" | "inspection" | "archive" | "revenue";
+const processNames: Record<Process, string> = { generation: "생산 공장", review: "제작 검수", stock: "13개 계정 창고", submission: "제출 운송", inspection: "심사대", archive: "승인·공개 창고", revenue: "월별 수익" };
 class WorldBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
@@ -25,12 +21,17 @@ class WorldBoundary extends Component<{ children: ReactNode; fallback: ReactNode
 }
 export default function App() {
   const [auth, setAuth] = useState<boolean | null>(null), [data, setData] = useState<WorldData | null>(null), [error, setError] = useState("");
-  const [panel, setPanel] = useState<Panel>(null), [selected, setSelected] = useState<string | null>(null), [district, setDistrict] = useState(0);
-  const [activeProcess, setActiveProcess] = useState<Process | null>(null), [layer, setLayer] = useState<Layer>("status");
+  const [panel, setPanel] = useState<Panel>(null), [selected, setSelected] = useState<string | null>(null);
+  const [activeProcess, setActiveProcess] = useState<Process | null>(null);
+  const layer: Layer = "status";
   const [inventory, setInventory] = useState({ query: "", filter: "ready", page: 0 });
   const [World, setWorld] = useState(() => InitialWorld), [worldAttempt, setWorldAttempt] = useState(0), [ready, setReady] = useState(false);
+  const [revenue, setRevenue] = useState<RevenueLedger | null>(null), [revenueError, setRevenueError] = useState<string | null>(null);
+  const [revenueAccountId, setRevenueAccountId] = useState<string | null>(null);
+  const revenuePolling = useRef(false);
+  const revenueYear = useRef(Number(new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Seoul" }).format(new Date())));
   const [localMode, setLocalMode] = useState(true), [refreshing, setRefreshing] = useState(false);
-  const [safeTop, setSafeTop] = useState(124), [safeBottom, setSafeBottom] = useState(112);
+  const [safeTop, setSafeTop] = useState(68), [safeBottom, setSafeBottom] = useState(84);
   const [compactText, setCompactText] = useState(false);
   const [activitySince, setActivitySince] = useState(() => Number(localStorage.getItem("biz-activity-seen")) || Date.now() - 86400000);
   const [reduced, setReduced] = useState(() => localStorage.getItem("biz-reduced") === "true" || matchMedia("(prefers-reduced-motion: reduce)").matches);
@@ -49,14 +50,21 @@ export default function App() {
     catch (e) { if ((e as Error & { status?: number }).status === 401) { setAuth(false); setData(null); } setError((e as Error).message); }
     finally { polling.current = false; setRefreshing(false); }
   }, []);
+  const refreshRevenue = useCallback(async () => {
+    if (revenuePolling.current) return; revenuePolling.current = true;
+    try { const value = await request<RevenueLedger>("/revenue?year=" + revenueYear.current); if (value.year === revenueYear.current) { setRevenue(value); setRevenueError(null); } }
+    catch (e) { setRevenueError((e as Error).message); }
+    finally { revenuePolling.current = false; }
+  }, []);
+  const revenueChanged = useCallback((value: RevenueLedger) => { revenueYear.current = value.year; setRevenue(value); setRevenueError(null); }, []);
   const refreshSession = useCallback(() => request<{ authenticated: boolean; local: boolean }>("/session").then(v => { setAuth(v.authenticated); setLocalMode(v.local); setError(""); }).catch(() => setError("서버에 연결하지 못했습니다.")), []);
   useEffect(() => { void refreshSession(); }, [refreshSession]);
   useEffect(() => {
     if (!auth) return;
-    void refresh(); const timer = setInterval(() => { if (!document.hidden) void refresh(); }, 30000);
-    const visible = () => { if (!document.hidden) void refresh(); }; document.addEventListener("visibilitychange", visible);
+    void refresh(); void refreshRevenue(); const timer = setInterval(() => { if (!document.hidden) { void refresh(); void refreshRevenue(); } }, 30000);
+    const visible = () => { if (!document.hidden) { void refresh(); void refreshRevenue(); } }; document.addEventListener("visibilitychange", visible);
     return () => { clearInterval(timer); document.removeEventListener("visibilitychange", visible); };
-  }, [auth, refresh]);
+  }, [auth, refresh, refreshRevenue]);
   const wasPanelOpen = useRef(false);
   const close = useCallback(() => setPanel(null), []);
   useEffect(() => {
@@ -66,51 +74,62 @@ export default function App() {
     const frame = requestAnimationFrame(() => {
       const previous = lastFocus.current;
       if (previous?.isConnected && previous.getClientRects().length && !previous.closest(".panel,[inert]")) previous.focus({ preventScroll: true });
-      else (document.querySelector<HTMLButtonElement>(".game-tray button") || document.querySelector<HTMLButtonElement>("#main-tools button[aria-pressed='true']"))?.focus({ preventScroll: true });
+      else (document.querySelector<HTMLButtonElement>(".game-tray button") || document.querySelector<HTMLButtonElement>("#main-tools button"))?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(frame);
   }, [panel]);
   const open = (next: Panel) => { setPanel(next); };
   const s = data?.snapshot, stale = isStale(s || null) || !!error;
   const account = s?.accounts.find(a => a.id === selected) || null;
+  const accountState = account && s ? accountFlow(account, s, stale) : null;
   const trayOpen = !!(account || activeProcess);
   useLayoutEffect(() => {
     const tray = document.querySelector<HTMLElement>(".game-tray");
     const hud = document.querySelector<HTMLElement>(".game-hud");
+    const dock = document.querySelector<HTMLElement>(".command-dock");
     const app = document.querySelector<HTMLElement>(".game-shell");
     const measure = () => {
       // Use actual text metrics: container-query em/rem values can remain stale
       // when large browser text is applied before the game first mounts.
       const fontSize = parseFloat(getComputedStyle(document.documentElement).fontSize);
       setCompactText(!!app && app.clientWidth <= 22 * fontSize);
-      setSafeTop(hud ? Math.ceil(hud.getBoundingClientRect().bottom + 12) : 124);
-      setSafeBottom(tray && !panel && window.innerWidth < 768 ? Math.ceil(window.innerHeight - tray.getBoundingClientRect().top + 10) : 112);
+      setSafeTop(hud ? Math.ceil(hud.getBoundingClientRect().bottom + 12) : 68);
+      setSafeBottom(tray && !panel && window.innerWidth < 768 ? Math.ceil(window.innerHeight - tray.getBoundingClientRect().top + 10) : dock && !dock.hidden ? Math.ceil(window.innerHeight - dock.getBoundingClientRect().top + 10) : 84);
     };
     measure();
     const observer = new ResizeObserver(measure); if (tray) observer.observe(tray);
     if (hud) observer.observe(hud);
+    if (dock) observer.observe(dock);
     if (app) observer.observe(app);
     window.addEventListener("resize", measure);
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
   }, [trayOpen, panel, ready, !!s]);
   const select = (id: string) => {
     setPanel(null); setActiveProcess(null); setSelected(id || null); setInventory(v => ({ ...v, page: 0 }));
-    const a = s?.accounts.find(a => a.id === id);
-    if (a) { setDistrict(accountDistrict(a.number)); world.current?.focus(id); }
-  };
-  const visit = (index: number) => {
-    const next = Math.max(0, Math.min(3, index)); setPanel(null); setSelected(null); setActiveProcess(null); setDistrict(next); world.current?.visitDistrict(next);
+    if (id) { setRevenueAccountId(id); world.current?.focus(id); }
   };
   const inspectProcess = (key: Process) => {
-    setPanel(null); setSelected(null); setActiveProcess(key);
-    const next = districts.findIndex(d => d.process === key); setDistrict(next); world.current?.focusProcess(key);
+    setActiveProcess(key); world.current?.focusProcess(key);
+    if (key === "revenue") { setPanel("revenue"); return; }
+    if (account && ["stock", "inspection", "archive"].includes(key)) {
+      setInventory(v => ({ ...v, filter: key === "inspection" ? "review" : key === "archive" ? "archive" : "ready", page: 0 }));
+      setPanel("inventory"); return;
+    }
+    setPanel(null); setSelected(null);
   };
   const dismissTray = () => { setSelected(null); setActiveProcess(null); world.current?.reset(); };
   useEffect(() => {
     const key = (e: KeyboardEvent) => { if (e.key !== "Escape" || document.querySelector("dialog[open]")) return; if (panel) close(); else { setSelected(null); setActiveProcess(null); world.current?.reset(); } };
     window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
   }, [panel, close]);
-  const total = s?.accounts.reduce((out, a) => ({ ready: out.ready + a.ready, review: out.review + (a.counts.submitted || 0), target: out.target + a.target, progress: out.progress + a.inProgress }), { ready: 0, review: 0, target: 0, progress: 0 });
+  const flows = s ? flowTotals(s) : null;
+  const total = s && flows ? {
+    ready: s.accounts.reduce((sum, a) => sum + a.ready, 0),
+    target: s.accounts.reduce((sum, a) => sum + a.target, 0),
+    progress: s.accounts.reduce((sum, a) => sum + a.inProgress, 0),
+    review: flows.inspection,
+    archived: flows.archived,
+  } : null;
   const issues = s?.accounts.filter(isIssue) || [];
   const failures = data ? outstandingFailures(data) : { commands: [], schedules: [] };
   const issueCount = issues.length + ["generation", "review", "metadata"].filter(key => s && laneCondition(s.automation.lanes[key], s.automation.productionEnabled).issue).length + (s && uploadCondition(s).issue ? 1 : 0) + failures.commands.length + failures.schedules.length;
@@ -118,12 +137,13 @@ export default function App() {
   const command = account && data?.commands.find(c => c.action === "recheck" && String(c.payload.accountId) === account.id);
   const observation = account ? commandObservation(account, command || undefined) : null;
   const waiting = observation?.pending || false;
+  const productionPending = !!data?.commands.some(c => c.action === "automation" && c.payload.lane === "production" && c.status === "queued");
   const recheck = () => {
     if (!account || stale || waiting) return;
     setCommandError(""); setConfirm({ id: crypto.randomUUID(), action: "recheck", payload: { accountId: account.id }, title: "계정 재확인", description: `${account.number}번 계정. 기존 순서와 30분 간격에 따라 확인합니다. 로그인은 ${account.browser || "지정"} 브라우저에서 먼저 마쳐 주세요.` });
   };
   const toggleProduction = () => {
-    if (!s || stale) return;
+    if (!s || stale || productionPending) return;
     setCommandError(""); const enabled = !s.automation.productionEnabled;
     setConfirm({ id: crypto.randomUUID(), action: "automation", payload: { lane: "production", enabled }, title: enabled ? "제작 재개" : "제작 일시정지", description: enabled ? "이미지 제작 작업을 재개합니다." : "이미 시작한 제작은 마친 뒤 멈춥니다." });
   };
@@ -139,55 +159,50 @@ export default function App() {
   const showMission = () => { if (stale) { setSelected(null); open("automation"); } else if (issues.length) select(issues[0].id); else { setSelected(null); open("alerts"); } };
   if (auth === false) return <Login onLogin={() => { setAuth(true); setError(""); }} />;
   return <div className={`ds app game-shell ${compactText ? "compact-text" : ""} ${panel ? "has-panel" : ""} ${trayOpen ? "has-tray" : ""} ${reduced ? "reduced-motion" : ""}`} data-style="main" onClickCapture={e => { if (!panel) { const button = (e.target as Element).closest<HTMLButtonElement>("button"); if (button && !button.closest("dialog")) lastFocus.current = button; } }}>
-    <a href="#main-tools" className="skip-link">지구 이동</a>
+    <a href="#main-tools" className="skip-link">관제 도구로 이동</a>
     {s && data && total ? <>
-      <main className="world-stage" aria-busy={!ready} aria-label="블루카이트 사업 섬" inert={!!panel}>
-        <WorldBoundary key={worldAttempt} fallback={<div className="world-recovery"><h2>작업동으로 이동</h2><p>3D 화면을 다시 열거나 목록에서 관리할 수 있습니다.</p><Button onClick={retryWorld}><RefreshCw size={20}/>3D 다시 열기</Button><div className="fallback-accounts">{s.accounts.map(a => <button key={a.id} onClick={() => select(a.id)}><b>{a.number}번 계정</b><span>{status(a)}</span></button>)}</div></div>}>
-          <Suspense fallback={<div className="world-loading"><img src="/brand/symbol.svg" alt=""/><span>섬을 여는 중</span></div>}>
-            <World ref={world} snapshot={s} selected={selected} layer={layer} reduced={reduced} stale={stale} onSelect={select} onReady={onReady} commands={data.commands} thumbnails={data.thumbnails} activeProcess={activeProcess} onInspectProcess={inspectProcess} district={district} onDistrictChange={setDistrict} trayOpen={trayOpen && !panel} safeTop={safeTop} safeBottom={safeBottom}/>
+      <main className="world-stage" aria-busy={!ready} aria-label="미리캔버스 산업 단지" inert={!!panel}>
+        <WorldBoundary key={worldAttempt} fallback={<div className="world-recovery"><h2>계정 창고 선택</h2><p>3D 화면을 다시 열거나 목록에서 관리할 수 있습니다.</p><Button onClick={retryWorld}><RefreshCw size={20}/>3D 다시 열기</Button><div className="fallback-accounts">{s.accounts.map(a => <button key={a.id} onClick={() => select(a.id)}><b>{a.number}번 계정</b><span>{status(a)}</span></button>)}</div></div>}>
+          <Suspense fallback={<div className="world-loading"><img src="/brand/symbol.svg" alt=""/><span>산업 단지를 여는 중</span></div>}>
+            <World ref={world} snapshot={s} selected={selected} layer={layer} reduced={reduced} stale={stale} onSelect={select} onReady={onReady} commands={data.commands} thumbnails={data.thumbnails} activeProcess={activeProcess} onInspectProcess={inspectProcess} trayOpen={trayOpen && !panel} safeTop={safeTop} safeBottom={safeBottom} revenue={revenue} revenueAccountId={revenueAccountId} revenueError={revenueError}/>
           </Suspense>
         </WorldBoundary>
       </main>
       <header className="game-hud" inert={!!panel}>
         <div className="game-topline">
-          <button className="brand" aria-label="현재 지구 전체 보기" onClick={() => { dismissTray(); close(); }}><img src="/brand/symbol.svg" alt=""/><img className="brand-wordmark" src="/brand/wordmark.svg" alt="BLUEKITE WORKS"/></button>
+          <button className="brand" aria-label="13개 계정 전체 보기" onClick={() => { dismissTray(); close(); }}><img src="/brand/symbol.svg" alt=""/><img className="brand-wordmark" src="/brand/wordmark.svg" alt="BLUEKITE WORKS"/></button>
           <button className={`connection ${stale ? "offline" : ""}`} aria-label={stale ? "작업기 연결 확인" : "상태 수신"} title={`마지막 수신 ${date(s.receivedAt, true)}`} onClick={() => open("automation")}><i className={`signal ${stale ? "unknown" : "active"}`}/><span>{stale ? "연결 확인" : "연결됨"}</span></button>
-          <IconButton label="섬 메뉴" onClick={() => { setSelected(null); open("businesses"); }}><Settings2 size={28}/></IconButton>
-        </div>
-        <div className="resource-hud" aria-label="실제 사업 자원">
-          <button onClick={() => { setLayer("stock"); inspectProcess("stock"); }} aria-label={`제출 가능한 재고 ${n(total.ready)}개, 창고로 이동`}><Package size={29}/><span><small><span className="hud-long">제출 가능</span><span className="hud-short">재고</span></small><strong>{n(total.ready)}</strong></span></button>
-          <button onClick={() => { setLayer("review"); inspectProcess("submission"); }} aria-label={`심사 중 ${n(total.review)}개, 출항장으로 이동`}><ScanLine size={29}/><span><small><span className="hud-long">심사 중</span><span className="hud-short">심사</span></small><strong>{n(total.review)}</strong></span></button>
-          <button className={issueCount || stale ? "has-issue" : ""} onClick={showMission} aria-label={`확인할 일 ${stale ? "연결 확인" : issueCount + "건"}`}><TriangleAlert size={26}/><span><small><span className="hud-long">확인할 일</span><span className="hud-short">확인</span></small><strong>{stale ? "연결" : issueCount}</strong></span></button>
+          <button className={`incident-control ${issueCount || stale ? "has-issue" : ""}`} onClick={showMission} aria-label={`확인할 일 ${stale ? "연결 확인" : issueCount + "건"}`}><TriangleAlert size={22}/><strong>{stale ? "!" : issueCount}</strong></button>
         </div>
       </header>
-      <div className="world-caption" inert={!!panel} aria-live="polite"><span>미리캔버스 <ChevronRight size={12}/></span><h1>{districts[district].name}</h1><span className="district-count">{districts[district].range}</span></div>
-      {(stale || issueCount > 0) && !trayOpen && <button className={`mission attention ${stale ? "stale" : ""}`} inert={!!panel} onClick={showMission}><TriangleAlert size={22}/><span>{stale ? `마지막 수신 ${date(s.receivedAt, true)}` : issues[0] ? `${String(issues[0].number).padStart(2,"0")} · ${status(issues[0])}` : `확인할 일 ${issueCount}건`}</span><ChevronRight size={16}/></button>}
-      <div className="game-tools" inert={!!panel}>
-        <IconButton label="현재 지구 보기" onClick={() => { dismissTray(); world.current?.reset(); }}><Focus size={25}/></IconButton>
-        <IconButton label="확대" onClick={() => world.current?.zoom(1)}><Plus size={22}/></IconButton>
-        <IconButton label="축소" onClick={() => world.current?.zoom(-1)}><Minus size={22}/></IconButton>
-        <IconButton label="지도 표시" onClick={() => setLayer(v => v === "status" ? "stock" : v === "stock" ? "review" : "status")} aria-pressed={layer !== "status"}><Layers3 size={25}/><span className="tool-label">{layer === "status" ? "상태" : layer === "stock" ? "재고" : "심사"}</span></IconButton>
-      </div>
+      <h1 className="sr-only">미리캔버스 · 13개 계정 산업 단지</h1>
+      {stale && <button className="mission stale" inert={!!panel} onClick={showMission}><TriangleAlert size={20}/><span>연결 확인 · {date(s.receivedAt, true)}</span><ChevronRight size={16}/></button>}
+
 
       {trayOpen && <section className={`game-tray ${account && isIssue(account) ? "warning" : ""}`} aria-label="시설 행동" inert={!!panel}>
-        <div className="tray-heading"><div><small>{account ? `작업동 ${String(account.number).padStart(2,"0")}` : "공정 시설"}</small><h2>{account?.name || processNames[activeProcess!]}</h2></div><IconButton label="시설 선택 닫기" onClick={dismissTray}><X size={20}/></IconButton></div>
-        {account ? <>
+        <div className="tray-heading"><div><h2>{account?.name || processNames[activeProcess!]}</h2></div><IconButton label="시설 선택 닫기" onClick={dismissTray}><X size={20}/></IconButton></div>
+        <div className="tray-content">{account ? <>
           <div className="tray-status" title={observation?.detail}><i className={`signal ${stale ? "unknown" : isIssue(account) ? severity(account) : observation?.tone || severity(account)}`}/><span>{stale ? `연결 확인 · 수신 ${date(s.receivedAt, true)}` : observation ? `${isIssue(account) ? status(account) + " · " : ""}${observation.label}` : status(account)}</span><button onClick={() => open("account")}>상세 <ChevronRight size={14}/></button></div>
-          <div className="tray-resources"><button onClick={() => showInventory()}><Package size={25}/><strong>{n(account.ready)}</strong><small>/ {n(account.target)}</small></button><button onClick={() => open("schedule")}><CalendarDays size={23}/><span>{nextSubmission(s, account.id) ? date(nextSubmission(s, account.id)) : "제출 일정"}</span><ChevronRight size={14}/></button></div>
-          <div className="tray-actions"><Button variant="outline" onClick={() => showInventory()}>재고 보기</Button><Button disabled={stale || waiting || sending} onClick={recheck}><RefreshCw size={19}/>{waiting ? "지시 대기" : "재확인"}</Button></div>
+          {accountState && <div className="tray-stages" aria-label="계정별 물류 수량"><button aria-label={`${account.number}번 계정 재고 ${n(accountState.ready)}개 보기`} onClick={() => showInventory("ready")}><Package size={22}/><strong>{n(accountState.ready)}</strong><small>재고</small></button><button aria-label={`${account.number}번 계정 심사 ${n(accountState.inspection)}개 보기`} onClick={() => showInventory("review")}><ScanLine size={22}/><strong>{n(accountState.inspection)}</strong><small>심사</small></button><button aria-label={`${account.number}번 계정 승인·공개 ${n(accountState.archived)}개 보기`} onClick={() => showInventory("archive")}><Package size={22}/><strong>{n(accountState.archived)}</strong><small><span className="tray-label-full">승인·공개</span><span className="tray-label-short">보관</span></small></button></div>}
+          {accountState && accountState.inspection > 0 && <div className="tray-review-date"><ScanLine size={16}/><span>심사 {accountState.reviewLabel}</span></div>}
+          <button className="tray-next" onClick={() => open("schedule")}><CalendarDays size={20}/><span>{nextSubmission(s, account.id) ? `${date(nextSubmission(s, account.id))} 제출 예정` : "제출 일정"}</span><ChevronRight size={14}/></button>
+
         </> : <>
           <div className="tray-status"><i className={`signal ${processHealth.tone}`}/><span>{(stale ? `연결 확인 · 수신 ${date(s.receivedAt, true)}` : processHealth.label)}</span></div>
-          <div className="tray-process-summary">{activeProcess === "generation" ? <><Factory size={32}/><strong>{n(total.progress)}</strong><span>제작 중</span></> : activeProcess === "review" ? <><ScanLine size={32}/><strong>{n(s.assets.filter(a => a.phase === "quarantined").length)}</strong><span>보류·확인</span></> : activeProcess === "stock" ? <><Package size={32}/><strong>{n(total.ready)}</strong><span>/ 목표 {n(total.target)}</span></> : <><CalendarDays size={32}/><strong>{data.schedules.filter(v => v.status === "planned").length}</strong><span>예약된 일정</span></>}</div>
-          <div className="tray-actions">{activeProcess === "generation" ? <><Button variant="outline" onClick={() => open("automation")}>운영 확인</Button><Button disabled={stale} onClick={toggleProduction}>{s.automation.productionEnabled ? "제작 멈춤" : "제작 재개"}</Button></> : activeProcess === "review" ? <><Button variant="outline" onClick={() => open("automation")}>검수 상태</Button><Button onClick={() => showInventory("hold")}>검수함 보기</Button></> : activeProcess === "stock" ? <><Button variant="outline" onClick={() => showInventory("all")}>전체 제작물</Button><Button onClick={() => showInventory()}>창고 열기</Button></> : <><Button variant="outline" onClick={() => showInventory("review")}>심사 중 보기</Button><Button onClick={() => open("schedule")}>제출 일정</Button></>}</div>
-        </>}
-      </section>}
-      <nav id="main-tools" className="district-dock" hidden={trayOpen} aria-label="지구 이동" inert={!!panel || trayOpen}>
+          <div className="tray-process-summary">{activeProcess === "generation" ? <><Factory size={30}/><strong>{n(total.progress)}</strong><span>제작 중</span></> : activeProcess === "review" ? <><ScanLine size={30}/><strong>{n(s.assets.filter(a => a.phase === "quarantined").length)}</strong><span>보류·확인</span></> : activeProcess === "stock" ? <><Package size={30}/><strong>{n(total.ready)}</strong><span>/ 비축 목표 {n(total.target)}</span></> : activeProcess === "inspection" ? <><ScanLine size={30}/><strong>{n(total.review)}</strong><span>심사 중 · 실제 관측</span></> : activeProcess === "archive" ? <><Package size={30}/><strong>{n(total.archived)}</strong><span>승인·공개 · 실제 관측</span></> : activeProcess === "revenue" ? <><CalendarDays size={30}/><span>계정별 12개월 수익 기록</span></> : <><CalendarDays size={30}/><strong>{data.schedules.filter(v => v.status === "planned").length}</strong><span>예약된 일정</span></>}</div>
 
-        <div className="district-tabs">{districts.map((d, i) => { const Icon = d.icon, issue = s.accounts.some(a => accountDistrict(a.number) === i && isIssue(a)) || ["warning", "danger"].includes(processState(d.process, s, stale).tone); return <button key={d.name} aria-label={`${d.name} 지구`} aria-pressed={district === i} onClick={() => visit(i)}><Icon size={32}/><span>{d.name}</span>{issue && <b aria-label="확인할 시설 있음"/>}</button>; })}</div>
+        </>}</div>
+        {account ? <div className="tray-actions"><Button variant="outline" onClick={() => showInventory()}>창고 열기</Button><Button disabled={stale || waiting || sending} onClick={recheck}><RefreshCw size={19}/>{waiting ? "지시 대기" : "재확인"}</Button></div> : <div className="tray-actions">{activeProcess === "generation" ? <><Button variant="outline" onClick={() => open("automation")}>운영 확인</Button><Button disabled={stale || productionPending} onClick={toggleProduction}>{productionPending ? "지시 대기" : s.automation.productionEnabled ? "생산 멈춤" : "생산 재개"}</Button></> : activeProcess === "review" ? <><Button variant="outline" onClick={() => open("automation")}>검수 상태</Button><Button onClick={() => showInventory("hold")}>검수함 열기</Button></> : activeProcess === "stock" ? <><Button variant="outline" onClick={() => { setSelected(null); open("accounts"); }}>계정 선택</Button><Button onClick={() => showInventory()}>전체 창고 열기</Button></> : activeProcess === "inspection" ? <><Button variant="outline" onClick={() => open("schedule")}>심사 일정</Button><Button onClick={() => showInventory("review")}>심사 중 보기</Button></> : activeProcess === "archive" ? <><Button variant="outline" onClick={() => showInventory("approved")}>승인 보관</Button><Button onClick={() => showInventory("published")}>공개 보관</Button></> : activeProcess === "revenue" ? <><Button variant="outline" onClick={() => open("accounts")}>계정 선택</Button><Button onClick={() => open("revenue")}>수익 기록부</Button></> : <><Button variant="outline" onClick={() => open("automation")}>운송 상태</Button><Button onClick={() => open("schedule")}>제출 일정</Button></>}</div>}
+      </section>}
+      <nav id="main-tools" className="command-dock" tabIndex={-1} hidden={trayOpen} aria-label="관제 도구" inert={!!panel || trayOpen}>
+        <button onClick={() => { dismissTray(); world.current?.reset(); }}><Focus size={26}/><span>전체 보기</span></button>
+        <button onClick={() => { setSelected(null); open("accounts"); }}><Package size={26}/><span>13개 계정</span></button>
+        <button onClick={() => open("activity")}><CalendarDays size={26}/><span>작업 기록</span></button>
+        <button onClick={() => open("businesses")}><Settings2 size={26}/><span>운영실</span></button>
       </nav>
       {panel && <button className="panel-backdrop" aria-label="단지로 돌아가기" onClick={close}/>}
-      <Panels panel={panel} data={data} selected={account} stale={stale} close={close} select={select} open={setPanel} refresh={refresh} toast={notify} reduced={reduced} setReduced={changeReduced} inventory={inventory} setInventory={setInventory} activitySince={activitySince} onAcknowledge={() => { const now = Date.now(); setActivitySince(now); localStorage.setItem("biz-activity-seen", String(now)); }} activeProcess={activeProcess} canLogout={!localMode} logout={async () => { await post("/logout", {}); setData(null); setPanel(null); setAuth(false); }}/>
-    </> : <main className="connection-screen"><img src="/brand/symbol.svg" alt=""/><h1>{error ? "연결을 확인해 주세요" : auth === null ? "섬에 연결하는 중" : "작업기 연결을 기다립니다"}</h1><p>{error || "미리캔버스 상태가 도착하면 섬이 열립니다."}</p><Button onClick={() => { if (auth === null) void refreshSession(); else void refresh(); }}><RefreshCw size={20}/>다시 확인</Button></main>}
+      <Panels panel={panel} data={data} selected={account} stale={stale} close={close} select={select} open={setPanel} refresh={refresh} toast={notify} reduced={reduced} setReduced={changeReduced} inventory={inventory} setInventory={setInventory} activitySince={activitySince} onAcknowledge={() => { const now = Date.now(); setActivitySince(now); localStorage.setItem("biz-activity-seen", String(now)); }} activeProcess={activeProcess} clearScope={() => setSelected(null)} viewControls={{ reset: () => { close(); dismissTray(); }, zoom: delta => { close(); setSelected(null); setActiveProcess(null); requestAnimationFrame(() => requestAnimationFrame(() => world.current?.zoom(delta))); } }} onRevenueChanged={revenueChanged} onRevenueAccountChange={setRevenueAccountId} revenueYear={revenue?.year ?? revenueYear.current} revenueAccountId={revenueAccountId} canLogout={!localMode} logout={async () => { await post("/logout", {}); setData(null); setPanel(null); setAuth(false); }}/>
+    </> : <main className="connection-screen"><img src="/brand/symbol.svg" alt=""/><h1>{error ? "연결을 확인해 주세요" : auth === null ? "단지에 연결하는 중" : "작업기 연결을 기다립니다"}</h1><p>{error || "미리캔버스 상태가 도착하면 단지가 열립니다."}</p><Button onClick={() => { if (auth === null) void refreshSession(); else void refresh(); }}><RefreshCw size={20}/>다시 확인</Button></main>}
     {confirm && <Modal title={confirm.title} onClose={() => { if (!sending) setConfirm(null); }}><p className="confirm-description">{confirm.description}</p>{commandError && <p className="form-error" role="alert">{commandError}</p>}{stale && <p className="form-error">작업기 연결을 확인한 뒤 지시할 수 있습니다.</p>}<div className="modal-actions"><Button variant="outline" disabled={sending} onClick={() => setConfirm(null)}>취소</Button><Button loading={sending} disabled={sending || stale} onClick={() => void sendCommand()}>지시 보내기</Button></div></Modal>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"}>{toast.tone === "error" ? <TriangleAlert size={22}/> : toast.tone === "success" ? <Check size={22}/> : <Info size={22}/>}<span>{toast.message}</span></div>}
     {error && s && <div className="network-error" role="alert"><span>{error}</span><button onClick={() => void refresh()}>다시 연결</button></div>}
@@ -196,5 +211,5 @@ export default function App() {
 }
 function Login({ onLogin }: { onLogin: () => void }) {
   const [error, setError] = useState(""), [busy, setBusy] = useState(false);
-  return <div className="ds login game-login" data-style="main"><div className="login-brand"><img src="/brand/logo-stacked.svg" alt="BLUEKITE WORKS"/></div><form onSubmit={async (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); setBusy(true); setError(""); try { await post("/login", { password: new FormData(e.currentTarget).get("password") }); onLogin(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }}><span className="login-icon"><KeyRound size={32}/></span><h1>내 사업의 작은 세계</h1><label>접속 암호<Input name="password" type="password" required autoComplete="current-password"/></label>{error && <p className="form-error" role="alert">{error}</p>}<Button className="full" loading={busy} disabled={busy} type="submit">{busy ? "확인 중…" : "섬으로 입장"}<ArrowRight size={20}/></Button></form><span className="login-caption">BLUEKITE WORKS</span></div>;
+  return <div className="ds login game-login" data-style="main"><div className="login-brand"><img src="/brand/logo-stacked.svg" alt="BLUEKITE WORKS"/></div><form onSubmit={async (e: FormEvent<HTMLFormElement>) => { e.preventDefault(); setBusy(true); setError(""); try { await post("/login", { password: new FormData(e.currentTarget).get("password") }); onLogin(); } catch (e) { setError((e as Error).message); } finally { setBusy(false); } }}><span className="login-icon"><KeyRound size={32}/></span><h1>BLUEKITE WORKS</h1><label>접속 암호<Input name="password" type="password" required autoComplete="current-password"/></label>{error && <p className="form-error" role="alert">{error}</p>}<Button className="full" loading={busy} disabled={busy} type="submit">{busy ? "확인 중…" : "관제 시작"}<ArrowRight size={20}/></Button></form><span className="login-caption">BLUEKITE WORKS</span></div>;
 }

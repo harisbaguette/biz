@@ -1,0 +1,313 @@
+{
+  "pack": "Kenney Factory Kit 3.0",
+  "license": "CC0-1.0",
+  "source": "https://kenney.nl/assets/factory-kit",
+  "sourceModelCount": 143,
+  "models": [
+    {
+      "id": "machine",
+      "url": "/assets/industrial/machine.glb",
+      "role": "생산 설비",
+      "size": [
+        1.2,
+        1.29975,
+        1.5
+      ],
+      "bytes": 33540,
+      "triangles": 268,
+      "nodes": [
+        "machine",
+        "machine-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "machine-window",
+      "url": "/assets/industrial/machine-window.glb",
+      "role": "검사 설비",
+      "size": [
+        1.2,
+        1.28971,
+        1.5
+      ],
+      "bytes": 46740,
+      "triangles": 428,
+      "nodes": [
+        "machine-window",
+        "machine-window-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "robot-arm-a",
+      "url": "/assets/industrial/robot-arm-a.glb",
+      "role": "생산 로봇",
+      "size": [
+        1.0,
+        3.2,
+        1.0
+      ],
+      "bytes": 58472,
+      "triangles": 472,
+      "nodes": [
+        "robot-arm-a",
+        "element-a",
+        "element-b",
+        "element-c",
+        "element-d",
+        "element-e",
+        "element-f",
+        "claw-a",
+        "claw-b",
+        "robot-arm-a-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "scanner-high",
+      "url": "/assets/industrial/scanner-high.glb",
+      "role": "심사 스캐너",
+      "size": [
+        0.484,
+        1.27,
+        1.774
+      ],
+      "bytes": 29600,
+      "triangles": 240,
+      "nodes": [
+        "scanner-high",
+        "scanner-high-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "conveyor-long",
+      "url": "/assets/industrial/conveyor-long.glb",
+      "role": "생산 이송대",
+      "size": [
+        2.0,
+        0.4,
+        1.0
+      ],
+      "bytes": 26596,
+      "triangles": 196,
+      "nodes": [
+        "conveyor-long",
+        "conveyor-long-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "conveyor-corner",
+      "url": "/assets/industrial/conveyor-corner.glb",
+      "role": "이송대 회전부",
+      "size": [
+        1.0,
+        0.45,
+        1.0
+      ],
+      "bytes": 30024,
+      "triangles": 234,
+      "nodes": [
+        "conveyor-corner",
+        "conveyor-corner-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "conveyor-sides",
+      "url": "/assets/industrial/conveyor-sides.glb",
+      "role": "출하 이송대",
+      "size": [
+        1.0,
+        0.4,
+        1.0
+      ],
+      "bytes": 29996,
+      "triangles": 228,
+      "nodes": [
+        "conveyor-sides",
+        "conveyor-sides-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "warning-traffic",
+      "url": "/assets/industrial/warning-traffic.glb",
+      "role": "운영 상태등",
+      "size": [
+        0.4,
+        1.55112,
+        0.4
+      ],
+      "bytes": 26104,
+      "triangles": 176,
+      "nodes": [
+        "warning-traffic",
+        "warning-traffic-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "screen-wide",
+      "url": "/assets/industrial/screen-wide.glb",
+      "role": "설비 계기판",
+      "size": [
+        1.2,
+        0.99131,
+        0.4875
+      ],
+      "bytes": 21824,
+      "triangles": 144,
+      "nodes": [
+        "screen-wide",
+        "screen-wide-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "structure-wall",
+      "url": "/assets/industrial/structure-wall.glb",
+      "role": "창고 외벽",
+      "size": [
+        1.0,
+        3.0,
+        2.0
+      ],
+      "bytes": 12164,
+      "triangles": 26,
+      "nodes": [
+        "structure-wall",
+        "structure-wall-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "door-wide-open",
+      "url": "/assets/industrial/door-wide-open.glb",
+      "role": "열린 출하 도크",
+      "size": [
+        1.8,
+        0.78019,
+        0.3
+      ],
+      "bytes": 10936,
+      "triangles": 16,
+      "nodes": [
+        "door-wide-open",
+        "door-wide-open-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "crane-lift",
+      "url": "/assets/industrial/crane-lift.glb",
+      "role": "적재 작업대",
+      "size": [
+        0.71667,
+        2.5,
+        0.71667
+      ],
+      "bytes": 39768,
+      "triangles": 304,
+      "nodes": [
+        "crane-lift",
+        "chain",
+        "magnet",
+        "crane-lift-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "cog-a",
+      "url": "/assets/industrial/cog-a.glb",
+      "role": "가동 기어",
+      "size": [
+        1.0,
+        0.225,
+        1.0
+      ],
+      "bytes": 21580,
+      "triangles": 160,
+      "nodes": [
+        "cog-a",
+        "cog-a-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "pipe-large-valve",
+      "url": "/assets/industrial/pipe-large-valve.glb",
+      "role": "공장 배관",
+      "size": [
+        1.0,
+        1.0,
+        1.0156
+      ],
+      "bytes": 50548,
+      "triangles": 456,
+      "nodes": [
+        "pipe-large-valve",
+        "pipe-large-valve-grounded"
+      ],
+      "animations": []
+    },
+    {
+      "id": "button-floor-round",
+      "url": "/assets/industrial/button-floor-round.glb",
+      "role": "설비 스위치",
+      "size": [
+        0.5,
+        0.15,
+        0.5
+      ],
+      "bytes": 22536,
+      "triangles": 92,
+      "nodes": [
+        "button-floor-round",
+        "button",
+        "button-floor-round-grounded"
+      ],
+      "animations": [
+        "toggle-on",
+        "toggle-off",
+        "toggle"
+      ]
+    },
+    {
+      "id": "hopper-round",
+      "url": "/assets/industrial/hopper-round.glb",
+      "role": "생산 투입구",
+      "size": [
+        1.1182,
+        1.0,
+        1.1182
+      ],
+      "bytes": 21608,
+      "triangles": 144,
+      "nodes": [
+        "hopper-round",
+        "hopper-round-grounded"
+      ],
+      "animations": []
+    }
+  ],
+  "reuse": [
+    {
+      "id": "truck",
+      "url": "/assets/models/truck.glb"
+    },
+    {
+      "id": "delivery",
+      "url": "/assets/models/delivery.glb"
+    },
+    {
+      "id": "crate",
+      "url": "/assets/game-v2/crate.glb"
+    },
+    {
+      "id": "pallet",
+      "url": "/assets/game-v2/pallet.glb"
+    }
+  ]
+}
