@@ -52,6 +52,15 @@ test("운영 서버는 개인 파일을 숨기고 HTTPS 세션으로만 업무 �
       shell.headers.get("Content-Security-Policy"),
       /connect-src 'self' blob:/,
     );
+    for (const [path, type] of [
+      ["/site.webmanifest", "application/manifest+json"],
+      ["/favicon.ico", "image/x-icon"],
+    ]) {
+      const asset = await fetch(endpoint + path);
+      assert.equal(asset.status, 200, path);
+      assert.ok(asset.headers.get("Content-Type")?.startsWith(type), path);
+      assert.ok((await asset.arrayBuffer()).byteLength > 0, path);
+    }
     for (const path of [
       "/.local/secrets.json",
       "/connector/snapshot.py",

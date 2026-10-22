@@ -1,0 +1,7 @@
+.ds .ds-badge { display:inline-flex; align-items:center; width:fit-content; padding:var(--p-space-2xs) var(--p-space-xs); border:var(--p-border-width) solid var(--p-line); border-radius:var(--p-radius-full); background:var(--p-soft); color:var(--p-ink); font-size:var(--p-text-sm); line-height:var(--p-leading-normal); font-weight:var(--p-weight-semibold); }
+.ds .ds-badge[data-tone="success"] { background:var(--p-success-soft); border-color:var(--p-success-line); color:var(--p-success); }
+.ds .ds-badge[data-tone="error"] { background:var(--p-error-soft); border-color:var(--p-error-line); color:var(--p-error); }
+.ds .ds-badge[data-tone="warning"] { background:var(--p-warning-soft); border-color:var(--p-warning-line); color:var(--p-warning); }
+/* looks: tone keeps the color, look changes the surface */
+.ds .ds-badge[data-look="icon"] { gap:var(--p-space-2xs); padding-left:var(--p-space-xs); }
+.ds .ds-badge[data-look="icon"] .ui-icon { width:var(--p-icon-sm); height:var(--p-icon-sm); }

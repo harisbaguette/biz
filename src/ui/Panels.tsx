@@ -1,13 +1,13 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
   ArrowRight,
   CalendarDays,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Factory,
   Gamepad2,
+  History,
   Image,
   KeyRound,
   Layers3,
@@ -21,9 +21,10 @@ import {
   TriangleAlert,
   Video,
   X,
-} from "lucide-react";
+} from "./Icons";
 import type { Account, Panel, WorldData, Schedule } from "../types";
 import {
+  accountLabel,
   assetStatus,
   assetReason,
   uploadCondition,
@@ -42,6 +43,7 @@ import {
 } from "../data";
 import { Empty, IconButton, Modal, Thumb } from "./Primitives";
 import { Management } from "./Management";
+import { Button, Input, Select, Switch } from "../design-system/components";
 import "./Panels.css";
 
 function DescriptionList({ items, className = "" }: { items: [string, ReactNode][]; className?: string }) {
@@ -71,9 +73,32 @@ interface Props {
 }
 export function Panels(p: Props) {
   const heading = useRef<HTMLHeadingElement>(null);
+  const panelRoot = useRef<HTMLElement>(null);
+  const headingId = useId();
+  const closeRef = useRef(p.close);
+  closeRef.current = p.close;
   useEffect(() => {
-    if (p.panel) heading.current?.focus({ preventScroll: true });
-  }, [p.panel, p.selected?.id]);
+    if (!p.panel) return;
+    if (!document.querySelector('dialog[open]')) heading.current?.focus({ preventScroll: true });
+    const trap = (event: KeyboardEvent) => {
+      if (document.querySelector('dialog[open]')) return;
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current(); return; }
+      if (event.key !== 'Tab') return;
+      const elements = [...(panelRoot.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]') || [])].filter(node => node.getClientRects().length > 0 && !node.closest('[hidden]'));
+      if (!elements.length) { event.preventDefault(); heading.current?.focus(); return; }
+      const first = elements[0], last = elements[elements.length - 1], active = document.activeElement;
+      if (!elements.includes(active as HTMLElement)) { event.preventDefault(); (event.shiftKey ? last : first).focus(); }
+      else if (event.shiftKey && active === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && active === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', trap, true);
+    return () => {
+      document.removeEventListener('keydown', trap, true);
+    };
+  }, [p.panel]);
+  useEffect(() => {
+    if (p.panel && !document.querySelector('dialog[open]')) heading.current?.focus({ preventScroll: true });
+  }, [p.selected?.id]);
   const { query, filter, page: requestedPage } = p.inventory;
   const [accountQuery, setAccountQuery] = useState("");
   const setQuery = (query: string) => { p.setInventory({ ...p.inventory, query, page: 0 }); body.current?.scrollTo({ top: 0 }); };
@@ -117,14 +142,14 @@ export function Panels(p: Props) {
     } catch (e) { p.toast((e as Error).message, "error"); } finally { setHistoryBusy(false); }
   }
   const titles: Record<string, string> = {
-    account: a?.name || "작업동",
+    account: a ? accountLabel(a) : "계정",
     accounts: "13개 작업동",
     inventory: "재고 창고",
     schedule: "일정",
     activity: "최근 변화",
     alerts: "확인할 일",
     automation: "자동 운영",
-    businesses: "사업 단지",
+    businesses: "섬 메뉴",
     management: "운영 계획·보고",
   };
   async function execute(action: string, payload: Record<string, unknown>) {
@@ -153,7 +178,7 @@ export function Panels(p: Props) {
       action: "recheck",
       payload: { accountId: account.id },
       title: "계정 재확인",
-      description: `${account.number}번 ${account.name}. 기존 순서와 30분 간격에 따라 계정과 제출 상태를 다시 확인합니다. 로그인은 ${account.browser || "지정"} 브라우저에서 먼저 마쳐 주세요.`,
+      description: `${accountLabel(account)}. 기존 순서와 30분 간격에 따라 계정과 제출 상태를 다시 확인합니다. 로그인은 ${account.browser || "지정"} 브라우저에서 먼저 마쳐 주세요.`,
     });
   };
   const toggle = (lane: string, enabled: boolean) => {
@@ -233,7 +258,7 @@ export function Panels(p: Props) {
   }, [previewKey, p.stale, p.refresh]);
   return (
     <>
-      <aside hidden={!p.panel} className={"ui-sheet ui-sheet--right panel panel-" + p.panel} aria-label={titles[p.panel!]}>
+      <aside ref={panelRoot} role="dialog" aria-modal={p.panel ? true : undefined} aria-labelledby={headingId} hidden={!p.panel} className={"ui-sheet ui-sheet--right panel panel-" + p.panel} aria-label={titles[p.panel!]}>
         <div className="ui-sheet__head panel-heading">
           <div>
             {p.panel === "account" && a && (
@@ -241,7 +266,7 @@ export function Panels(p: Props) {
                 작업동 {a.number.toString().padStart(2, "0")}
               </span>
             )}
-            <h2 className="ui-sheet__title" ref={heading} tabIndex={-1}>
+            <h2 id={headingId} className="ui-sheet__title" ref={heading} tabIndex={-1}>
               {titles[p.panel!]}
             </h2>
           </div>
@@ -282,12 +307,12 @@ export function Panels(p: Props) {
                     <small>개</small>
                   </strong>
                 </div>
-                <button
-                  className="ui-button ui-button--ghost text-button"
+                <Button variant="ghost"
+                  className="ui-button text-button"
                   onClick={() => p.open("inventory")}
                 >
                   창고 열기 <ArrowRight size={16} />
-                </button>
+                </Button>
               </div>
               <p className="stock-target">비축 목표 {n(a.target)}개</p>
               <div className="account-next-submission"><CalendarDays size={18}/><span>다음 제출 예정</span><strong>{date(nextSubmission(s, a.id))}</strong></div>
@@ -381,7 +406,7 @@ export function Panels(p: Props) {
             <section className="ui-block-list accounts-block">
               <label className="search">
                 <Search size={18} />
-                <input className="ui-input"
+                <Input className="ui-input"
                   aria-label="계정 검색"
                   placeholder="화풍·계정 검색"
                   value={accountQuery}
@@ -390,7 +415,7 @@ export function Panels(p: Props) {
               </label>
               <div className="ui-block-list__body account-list">
                 {accounts
-                  .filter((v) => (v.name + v.email).includes(accountQuery))
+                  .filter((v) => (accountLabel(v) + v.email).includes(accountQuery))
                   .map((v) => (
                     <button key={v.id} onClick={() => p.select(v.id)}>
                       <span className="account-number">
@@ -417,16 +442,16 @@ export function Panels(p: Props) {
           {p.panel === "inventory" && (
             <section className="ui-block-list inventory-block">
               <div className="scope-line">
-                <span>{a ? `${a.number}번 · ${a.name}` : "모든 작업동"}</span>
+                <span>{a ? `${accountLabel(a)}` : "모든 작업동"}</span>
                 {a && (
-                  <button className="ui-button ui-button--ghost text-button" onClick={() => p.select("")}>
+                  <Button variant="ghost" className="ui-button text-button" onClick={() => p.select("")}>
                     전체 보기
-                  </button>
+                  </Button>
                 )}
               </div>
               <label className="search">
                 <Search size={18} />
-                <input className="ui-input"
+                <Input className="ui-input"
                   aria-label="재고 검색"
                   placeholder="제목·키워드 검색"
                   value={query}
@@ -499,16 +524,16 @@ export function Panels(p: Props) {
           )}
           {p.panel === "schedule" && (
             <>
-              <div className="scope-line"><span>{a ? `${a.number}번 · ${a.name}` : "모든 작업동"}</span>{a && <button className="ui-button ui-button--ghost text-button" onClick={() => p.select("")}>전체 보기</button>}</div>
+              <div className="scope-line"><span>{a ? `${accountLabel(a)}` : "모든 작업동"}</span>{a && <Button variant="ghost" className="ui-button text-button" onClick={() => p.select("")}>전체 보기</Button>}</div>
               <div className="split">
                 <span className="muted">한국 시간</span>
-                <button
-                  className="ui-button ui-button--primary button primary compact"
+                <Button variant="primary"
+                  className="ui-button compact"
                   onClick={() => openSchedule()}
                 >
                   <Plus size={16} />
                   일정 추가
-                </button>
+                </Button>
               </div>
               <h3 className="section-title">내 지시</h3>
               {schedules.filter(
@@ -537,7 +562,7 @@ export function Panels(p: Props) {
                                 : ""}
                           </span>
                         </div>
-                        {v.status === "failed" && <div className="schedule-recovery"><p role="status">{v.command_message || "작업기에서 처리하지 못했습니다. 계정 상태를 확인하세요."}</p><button className="ui-button ui-button--ghost text-button" disabled={p.stale} onClick={() => openSchedule(v)}>다시 예약</button><button className="ui-button ui-button--ghost text-button" onClick={() => updateSchedule(v.id,"cancelled")}>기록 닫기</button></div>}
+                        {v.status === "failed" && <div className="schedule-recovery"><p role="status">{v.command_message || "작업기에서 처리하지 못했습니다. 계정 상태를 확인하세요."}</p><Button variant="ghost" className="ui-button text-button" disabled={p.stale} onClick={() => openSchedule(v)}>다시 예약</Button><Button variant="ghost" className="ui-button text-button" onClick={() => updateSchedule(v.id,"cancelled")}>기록 닫기</Button></div>}
                         {v.status === "planned" && (
                           <div className="inline-actions">
                             {v.kind === "memo" && (
@@ -561,7 +586,7 @@ export function Panels(p: Props) {
                 </div>
               )}
               <h3 className="section-title">다음 제출 예정 · 원본 계획</h3>
-              <div className="timeline">{accounts.filter(v => (!a || a.id === v.id) && nextSubmission(s,v.id)).sort((x,y) => (nextSubmission(s,x.id) || "").localeCompare(nextSubmission(s,y.id) || "")).map(v => <button className="timeline-item" key={v.id} onClick={() => p.select(v.id)}><CalendarDays size={18}/><div><strong>{v.number}번 · {v.name}</strong><span>{date(nextSubmission(s,v.id))}</span></div><ChevronRight size={16}/></button>)}</div>
+              <div className="timeline">{accounts.filter(v => (!a || a.id === v.id) && nextSubmission(s,v.id)).sort((x,y) => (nextSubmission(s,x.id) || "").localeCompare(nextSubmission(s,y.id) || "")).map(v => <button className="timeline-item" key={v.id} onClick={() => p.select(v.id)}><CalendarDays size={18}/><div><strong>{accountLabel(v)}</strong><span>{date(nextSubmission(s,v.id))}</span></div><ChevronRight size={16}/></button>)}</div>
               {!accounts.some(v => (!a || a.id === v.id) && nextSubmission(s,v.id)) && <p className="muted schedule-empty">다음 제출 예정 없음 · {a ? `${a.number}번 작업동` : `${accounts.length}개 작업동`}</p>}
               <h3 className="section-title">실제 제출 · 예상 심사</h3>
               <div className="timeline">
@@ -598,8 +623,8 @@ export function Panels(p: Props) {
                   ))}
               </div>
               {!s.calendar.some(v=>!v.checked_on && (!a || v.accountId === a.id)) && <p className="muted schedule-empty">진행 중인 제출·심사 기록이 없습니다.</p>}
-              {s.calendar.some(v=>v.checked_on && (!a || v.accountId === a.id)) && <details className="history"><summary>지난 제출·심사 기록</summary><div className="timeline">{[...s.calendar].filter(v=>v.checked_on && (!a || v.accountId === a.id)).sort((x,y)=>y.check_on.localeCompare(x.check_on)).map(v=><button className="timeline-item" key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot done"/><div><strong>{v.accountId}번 · {accounts.find(x=>x.id === v.accountId)?.name}</strong><small>{date(v.uploaded_on)} 제출 · {date(v.checked_on)} 확인 완료</small></div><ChevronRight size={16}/></button>)}</div></details>}
-              {(historyRows.length > 0 || nextCursor) && <details className="history"><summary>완료·취소 기록{p.data.scheduleHistory ? ` · 전체 ${n(p.data.scheduleHistory.total)}건` : ""}</summary>{historyRows.map(v => <p key={v.id}><span>{v.account_id}번 · {v.title}<small>{date(v.due_at,true)}</small></span><span>{v.status === "done" ? "완료" : "취소"}</span></p>)}{nextCursor && <button className="ui-button button secondary full" disabled={historyBusy} onClick={() => void loadHistory()}>{historyBusy ? "불러오는 중…" : "이전 기록 더 보기"}</button>}</details>}
+              {s.calendar.some(v=>v.checked_on && (!a || v.accountId === a.id)) && <details className="history"><summary>지난 제출·심사 기록</summary><div className="timeline">{[...s.calendar].filter(v=>v.checked_on && (!a || v.accountId === a.id)).sort((x,y)=>y.check_on.localeCompare(x.check_on)).map(v=><button className="timeline-item" key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot done"/><div><strong>{v.accountId}번 계정</strong><small>{date(v.uploaded_on)} 제출 · {date(v.checked_on)} 확인 완료</small></div><ChevronRight size={16}/></button>)}</div></details>}
+              {(historyRows.length > 0 || nextCursor) && <details className="history"><summary>완료·취소 기록{p.data.scheduleHistory ? ` · 전체 ${n(p.data.scheduleHistory.total)}건` : ""}</summary>{historyRows.map(v => <p key={v.id}><span>{v.account_id}번 · {v.title}<small>{date(v.due_at,true)}</small></span><span>{v.status === "done" ? "완료" : "취소"}</span></p>)}{nextCursor && <Button variant="outline" className="ui-button full" disabled={historyBusy} onClick={() => void loadHistory()}>{historyBusy ? "불러오는 중…" : "이전 기록 더 보기"}</Button>}</details>}
 
             </>
           )}
@@ -666,7 +691,7 @@ export function Panels(p: Props) {
                     </span>
                     <div>
                       <strong>
-                        {v.number}번 · {v.name}
+                        {accountLabel(v)}
                       </strong>
                       <span>{status(v)}</span>
                       <small>{v.message}</small>
@@ -699,7 +724,7 @@ export function Panels(p: Props) {
                             ? "실패"
                             : "대기"}
                       </span>
-                      {v.status === "failed" && <button className="ui-button ui-button--ghost text-button" disabled={p.stale} onClick={() => { setError(""); setConfirm({ id:crypto.randomUUID(), action:v.action, payload:v.payload, title:"지시 다시 보내기", description:v.message || "원본 작업실에서 원인을 해결한 뒤 같은 지시를 다시 보냅니다." }); }}>재시도</button>}
+                      {v.status === "failed" && <Button variant="ghost" className="ui-button text-button" disabled={p.stale} onClick={() => { setError(""); setConfirm({ id:crypto.randomUUID(), action:v.action, payload:v.payload, title:"지시 다시 보내기", description:v.message || "원본 작업실에서 원인을 해결한 뒤 같은 지시를 다시 보냅니다." }); }}>재시도</Button>}
                     </div>
                   ))}
                 </div>
@@ -709,13 +734,13 @@ export function Panels(p: Props) {
             </>
           )}
           {p.panel === "activity" && <>
-            <div className="split"><span className="muted">최근 {n(s.recent.length)}건 기준</span><button className="ui-button ui-button--ghost text-button" onClick={p.onAcknowledge}>여기까지 확인 <Check size={16}/></button></div>
+            <div className="split"><span className="muted">최근 {n(s.recent.length)}건 기준</span><Button variant="ghost" className="ui-button text-button" onClick={p.onAcknowledge}>여기까지 확인 <Check size={16}/></Button></div>
             <div className="timeline">{[...s.recent].sort((x,y)=>y.recorded_at.localeCompare(x.recorded_at)).map(v => <button className={"timeline-item actual-event " + (Date.parse(v.recorded_at)>p.activitySince ? "unread" : "")} key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot"/><div><small>{date(v.recorded_at,true)} · {v.accountId}번</small><strong>{statuses[v.state] || "상태 변경"}</strong><span>{v.title}</span></div><ChevronRight size={16}/></button>)}</div>
             {!s.recent.length && <Empty>기록된 변화가 없습니다.</Empty>}
           </>}
           {p.panel === "automation" && (
             <>
-              <button className="ui-button button secondary full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</button>
+              <Button variant="outline" className="ui-button full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</Button>
               {s.automation.scan?.pending.length ? <div className="command-progress">
                 <strong>순차 확인 진행 중 · {s.automation.scan.pending.length}개 계정 남음</strong>
                 <span>{s.automation.scan.pending.map(number => `${number}번`).join(" → ")}</span>
@@ -741,16 +766,12 @@ export function Panels(p: Props) {
                       <strong>{String(label)}</strong>
                       <span>{p.data.commands.some(v => v.action === "automation" && v.payload.lane === lane && v.status === "queued") ? "설정 지시 대기" : enabled ? "자동 운영 켜짐" : "일시정지"}</span>
                     </div>
-                    <button
-                      className={"switch " + (enabled ? "on" : "")}
-                      role="switch"
+                    <Switch
                       aria-label={String(label)}
-                      aria-checked={Boolean(enabled)}
+                      checked={Boolean(enabled)}
                       disabled={p.stale || p.data.commands.some(v => v.action === "automation" && v.payload.lane === lane && v.status === "queued")}
-                      onClick={() => toggle(String(lane), !enabled)}
-                    >
-                      <span />
-                    </button>
+                      onChange={() => toggle(String(lane), !enabled)}
+                    />
                   </div>
                 );
               })}
@@ -783,30 +804,26 @@ export function Panels(p: Props) {
                   <strong>움직임 줄이기</strong>
                   <span>운영 상태는 계속 갱신됩니다.</span>
                 </div>
-                <button
-                  className={"switch " + (p.reduced ? "on" : "")}
-                  role="switch"
-                  aria-label="움직임 줄이기"
-                  aria-checked={p.reduced}
-                  onClick={() => p.setReduced(!p.reduced)}
-                >
-                  <span />
-                </button>
+                <Switch aria-label="움직임 줄이기" checked={p.reduced} onChange={() => p.setReduced(!p.reduced)} />
               </div>
               {p.canLogout && (
-                <button
-                  className="ui-button button secondary full"
-                  style={{ marginTop: 24 }}
+                <Button variant="outline"
+                  className="ui-button full"
+                  style={{ marginTop: "var(--p-space-lg)" }}
                   onClick={() => p.logout().catch((e) => p.toast(e.message, "error"))}
                 >
                   로그아웃
-                </button>
+                </Button>
               )}
             </>
           )}
           {p.panel === "businesses" && (
             <>
-              <button className="ui-button button secondary full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</button>
+              <div className="island-tools">
+                <Button variant="outline" onClick={() => p.open("activity")}><History size={28}/> 최근 변화</Button>
+                <Button variant="outline" onClick={() => p.open("automation")}><Factory size={28}/> 운영실</Button>
+              </div>
+              <Button variant="outline" className="ui-button full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</Button>
               <button
                 className="business-row selected"
                 onClick={() => p.open("accounts")}
@@ -843,8 +860,8 @@ export function Panels(p: Props) {
                   </div>
                 );
               })}
-              <button
-                className="ui-button button secondary full"
+              <Button variant="outline"
+                className="ui-button full"
                 onClick={() => {
                   setError("");
                   setAddBusiness(true);
@@ -852,25 +869,25 @@ export function Panels(p: Props) {
               >
                 <Plus size={18} />
                 사업 등록
-              </button>
+              </Button>
             </>
           )}
           {p.panel === "management" && <Management businesses={p.data.businesses} toast={p.toast}/>}
         </div>
         {p.panel === "account" && a && (
           <div className="panel-actions panel-footer">
-            <button className="ui-button button secondary" onClick={() => openSchedule()}>
+            <Button variant="outline" className="ui-button" onClick={() => openSchedule()}>
               <CalendarDays size={17} />
               일정 추가
-            </button>
-            <button
-              className="ui-button ui-button--primary button primary"
+            </Button>
+            <Button variant="primary"
+              className="ui-button"
               disabled={p.stale || accountPending || busy}
               onClick={() => makeRecheck(a)}
             >
               <RefreshCw size={17} />
               {accountPending ? "지시 대기" : accountCommand?.status === "failed" ? "다시 재확인" : "재확인"}
-            </button>
+            </Button>
           </div>
         )}
       </aside>
@@ -903,19 +920,10 @@ export function Panels(p: Props) {
             }}
           >
             <fieldset className="ui-form__set"><div className="ui-form__body">
-            <label className="ui-field">
-              작업동
-              <span className="ui-native-select"><select className="ui-native-select__el" name="account" value={draft.account} onChange={e=>setDraft({...draft,account:e.target.value})}>
-                {accounts.map((v) => (
-                  <option value={v.id} key={v.id}>
-                    {v.number}번 · {v.name}
-                  </option>
-                ))}
-              </select><span className="ui-native-select__arrow" aria-hidden="true"><ChevronDown size={18}/></span></span>
-            </label>
+            <Select label="작업동" name="account" value={draft.account} onChange={e=>setDraft({...draft,account:e.target.value})} items={accounts.map(v => ({value:v.id,label:`${accountLabel(v)}`}))} />
             <label className="ui-field">
               할 일
-              <input className="ui-input"
+              <Input className="ui-input"
                 name="title"
                 value={draft.title}
                 onChange={e=>setDraft({...draft,title:e.target.value})}
@@ -926,7 +934,7 @@ export function Panels(p: Props) {
             </label>
             <label className="ui-field">
               <span className="ui-field__label">일시 <small className="muted">한국 시간</small></span>
-              <input className="ui-input"
+              <Input className="ui-input"
                 name="due"
                 type="datetime-local"
                 required
@@ -934,13 +942,7 @@ export function Panels(p: Props) {
                 onChange={e=>setDraft({...draft,due:e.target.value})}
               />
             </label>
-            <label className="ui-field">
-              처리
-              <span className="ui-native-select"><select className="ui-native-select__el" name="kind" value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})}>
-                <option value="memo">직접 할 일</option>
-                <option value="recheck">작업기에 계정 재확인 요청</option>
-              </select><span className="ui-native-select__arrow" aria-hidden="true"><ChevronDown size={18}/></span></span>
-            </label>
+            <Select label="처리" name="kind" value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})} items={[{value:"memo",label:"직접 할 일"},{value:"recheck",label:"작업기에 계정 재확인 요청"}]} />
             <p className="ui-field__hint form-help">
               재확인은 예약 시각 이후 기존 운영 순서로 처리합니다. 실제 제출
               완료와 구분됩니다.
@@ -950,9 +952,9 @@ export function Panels(p: Props) {
                 {error}
               </p>
             )}
-            <button disabled={busy} className="ui-button ui-button--primary button primary full">
+            <Button variant="primary" type="submit" disabled={busy} className="ui-button full">
               {busy ? "저장 중…" : "일정 저장"}
-            </button>
+            </Button>
             </div></fieldset>
           </form>
         </Modal>
@@ -966,20 +968,20 @@ export function Panels(p: Props) {
             </p>
           )}
           <div className="modal-actions">
-            <button
-              className="ui-button button secondary"
+            <Button variant="outline"
+              className="ui-button"
               onClick={() => setConfirm(null)}
               disabled={busy}
             >
               취소
-            </button>
-            <button
-              className="ui-button ui-button--primary button primary"
+            </Button>
+            <Button variant="primary"
+              className="ui-button"
               disabled={busy}
               onClick={() => execute(confirm.action, confirm.payload)}
             >
               {busy ? "전달 중…" : "지시 보내기"}
-            </button>
+            </Button>
           </div>
         </Modal>
       )}
@@ -1010,26 +1012,17 @@ export function Panels(p: Props) {
             <fieldset className="ui-form__set"><div className="ui-form__body">
             <label className="ui-field">
               사업 이름
-              <input className="ui-input"
+              <Input className="ui-input"
                 name="name"
                 required
                 maxLength={40}
                 placeholder="YouTube"
               />
             </label>
-            <label className="ui-field">
-              종류
-              <span className="ui-native-select"><select className="ui-native-select__el" name="kind" defaultValue="video">
-                <option value="video">영상</option>
-                <option value="game">게임</option>
-                <option value="art">그림 · 멤버십</option>
-                <option value="blog">블로그</option>
-                <option value="other">기타</option>
-              </select><span className="ui-native-select__arrow" aria-hidden="true"><ChevronDown size={18}/></span></span>
-            </label>
+            <Select label="종류" name="kind" defaultValue="video" items={[{value:"video",label:"영상"},{value:"game",label:"게임"},{value:"art",label:"그림 · 멤버십"},{value:"blog",label:"블로그"},{value:"other",label:"기타"}]} />
             <label className="ui-field">
               메모
-              <input className="ui-input"
+              <Input className="ui-input"
                 name="note"
                 maxLength={300}
                 placeholder="연결할 작업실 또는 운영 메모"
@@ -1043,9 +1036,9 @@ export function Panels(p: Props) {
                 {error}
               </p>
             )}
-            <button className="ui-button ui-button--primary button primary full" disabled={busy}>
+            <Button variant="primary" type="submit" className="ui-button full" disabled={busy}>
               {busy ? "저장 중…" : "등록"}
-            </button>
+            </Button>
             </div></fieldset>
           </form>
         </Modal>
@@ -1065,7 +1058,7 @@ export function Panels(p: Props) {
                 : "작업실에서 이 그림의 미리보기를 가져오는 중입니다."}
             </p>
           )}
-          {p.data.previewFailures?.includes(activeAsset.id) && <button className="ui-button button secondary full" disabled={p.stale || busy} onClick={async()=> { setBusy(true); try { await post("/previews",{ids:[activeAsset.id],retry:true}); await p.refresh(); p.toast("미리보기를 다시 요청했습니다.", "success"); } catch(e) {p.toast((e as Error).message, "error");} finally {setBusy(false);} }}>미리보기 다시 가져오기</button>}
+          {p.data.previewFailures?.includes(activeAsset.id) && <Button variant="outline" className="ui-button full" disabled={p.stale || busy} onClick={async()=> { setBusy(true); try { await post("/previews",{ids:[activeAsset.id],retry:true}); await p.refresh(); p.toast("미리보기를 다시 요청했습니다.", "success"); } catch(e) {p.toast((e as Error).message, "error");} finally {setBusy(false);} }}>미리보기 다시 가져오기</Button>}
           {assetReason(activeAsset) && <p className="asset-reason">{assetReason(activeAsset)}</p>}
           <DescriptionList items={[
             ["작업동", `${activeAsset.accountId}번`],

@@ -41,6 +41,8 @@ const mime = {
   ".woff2": "font/woff2",
   ".glb": "model/gltf-binary",
   ".json": "application/json; charset=utf-8",
+  ".webmanifest": "application/manifest+json; charset=utf-8",
+  ".ico": "image/x-icon",
   ".txt": "text/plain; charset=utf-8",
 };
 const cache = new Map();

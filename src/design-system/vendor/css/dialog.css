@@ -1,0 +1,4 @@
+.ds .ds-dialog { width:min(var(--p-container-md),calc(100% - var(--p-space-xl))); max-height:calc(100dvh - var(--p-space-xl)); overflow:auto; margin:auto; padding:var(--p-space-lg); background:var(--p-high); color:var(--p-ink); border:var(--p-border-width) solid var(--p-control-border); border-radius:var(--p-radius-xl); }
+.ds .ds-dialog h2 { font-size:var(--p-text-title); margin-bottom:var(--p-space-md); }
+.ds .ds-dialog .ds-confirm-row { display:flex; justify-content:flex-end; gap:var(--p-space-sm); margin-top:var(--p-space-lg); }
+.ds .ds-dialog::backdrop { background:var(--p-backdrop); }

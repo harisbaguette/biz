@@ -1,0 +1,12 @@
+.ds .ds-input { display:block; width:100%; min-width:0; min-height:var(--p-control-size-md); padding:var(--p-space-sm) var(--p-space-md); border:var(--p-border-width) solid var(--p-control-border); border-radius:var(--p-control-radius); background:var(--p-bg); box-shadow:var(--p-inset); color:var(--p-ink); font-size:var(--p-text-body); line-height:var(--p-leading-normal); }
+.ds select.ds-input { appearance:none; padding-inline-end:calc(var(--p-space-md) * 2 + var(--p-size-2xs)); background-image:linear-gradient(45deg,transparent calc(50% - var(--p-border-width)),var(--p-muted) calc(50% - var(--p-border-width)) calc(50% + var(--p-border-width)),transparent calc(50% + var(--p-border-width))),linear-gradient(-45deg,transparent calc(50% - var(--p-border-width)),var(--p-muted) calc(50% - var(--p-border-width)) calc(50% + var(--p-border-width)),transparent calc(50% + var(--p-border-width))); background-size:calc(var(--p-size-2xs) + var(--p-space-3xs)) calc(var(--p-size-2xs) + var(--p-space-3xs)); background-position:calc(100% - var(--p-space-md) - var(--p-size-2xs) - var(--p-space-3xs)) 50%,calc(100% - var(--p-space-md)) 50%; background-repeat:no-repeat; cursor:pointer; }
+.ds select.ds-input:disabled { cursor:not-allowed; }
+.ds .ds-input::placeholder { color:var(--p-muted); opacity:var(--p-opacity-full); }
+.ds .ds-input:disabled { opacity:var(--p-opacity-full); box-shadow:none; color:var(--p-muted); background:var(--p-disabled); border-color:var(--p-line); cursor:not-allowed; }
+.ds .ds-input[aria-invalid="true"] { border-color:var(--p-error); border-width:var(--p-border-width-strong); padding:var(--p-space-xs) var(--p-space-sm); }
+.ds label.ds-field { display:grid; gap:var(--p-space-xs); min-width:0; font-size:var(--p-text-body); }
+/* looks: 윤곽(box) is the base box; 채움(filled) keeps only a bottom rule on a tinted surface (Material 3 filled text field) */
+.ds .ds-input[data-look="filled"] { border-width:0 0 var(--p-border-width-strong); border-radius:var(--p-control-radius) var(--p-control-radius) 0 0; background:var(--p-surface); box-shadow:none; }
+.ds .ds-input[data-look="filled"][aria-invalid="true"] { padding:var(--p-space-sm) var(--p-space-md); }
+.ds .ds-input[data-look]:disabled { background:var(--p-disabled); border-color:var(--p-line); color:var(--p-muted); box-shadow:none; }
+.ds .ds-input[data-look][aria-invalid="true"] { border-color:var(--p-error); }

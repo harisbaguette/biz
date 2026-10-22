@@ -1,0 +1,2 @@
+.ds .ds-empty { padding:var(--p-space-xl); text-align:center; border:var(--p-border-width) var(--p-stroke-dashed) var(--p-control-border); border-radius:var(--p-radius); }
+.ds .ds-empty .ds-button { margin-top:var(--p-space-md); }

@@ -1,56 +1,66 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { arrangeLabels, siteLayout } from '../src/world/layout.ts';
+import { arrangeLabels, siteLayout, accountDistrict, districtRanges, districtCenters, processes } from '../src/world/layout.ts';
 
-function assertTargets(labels, safe) {
-  assert.equal(new Set(labels.map(n => n.id)).size, 17);
+function assertTargets(labels, safe, count) {
+  assert.equal(new Set(labels.map(n => n.id)).size, count);
   for (const a of labels) {
-    assert.ok(a.x - a.width / 2 >= safe.left - 0.01);
-    assert.ok(a.x + a.width / 2 <= safe.right + 0.01);
-    assert.ok(a.y - a.height / 2 >= safe.top - 0.01);
-    assert.ok(a.y + a.height / 2 <= safe.bottom + 0.01);
+    assert.ok(a.width >= 48 && a.height >= 48, `${a.id}: full touch target`);
+    assert.ok(a.x - a.width / 2 >= safe.left - .01);
+    assert.ok(a.x + a.width / 2 <= safe.right + .01);
+    assert.ok(a.y - a.height / 2 >= safe.top - .01);
+    assert.ok(a.y + a.height / 2 <= safe.bottom + .01);
     for (const b of labels) if (a !== b) {
       assert.ok(Math.abs(a.x - b.x) >= (a.width + b.width) / 2 + 3.99 || Math.abs(a.y - b.y) >= (a.height + b.height) / 2 + 3.99, `${a.id} / ${b.id} collide`);
     }
   }
 }
-const portrait = Array.from({ length: 17 }, (_, i) => ({
-  id: i < 4 ? `process-${i}` : String(i - 3),
-  x: 100.43 + (i % 3) * 79.57,
-  y: 117.48 + Math.floor(i / 3) * 45.59,
-  width: i < 3 ? 80 : i === 3 ? 88 : 44,
-  height: 44,
-}));
 
-test('짧은 세로 화면에서도 마지막 계정은 자기 건물의 열에 남고 17개 표찰이 겹치지 않는다', () => {
-  const safe = { left: 24, right: 336, top: 28, bottom: 364 };
-  // A selected marker can arrive first; placement must keep physical order.
-  const ordered = [portrait[16], ...portrait.slice(0, 16)];
-  const labels = arrangeLabels(ordered, safe);
-  assertTargets(labels, safe);
-  for (const original of portrait) {
-    const label = labels.find(n => n.id === original.id);
-    assert.ok(Math.abs(label.x - original.x) < 5);
-    assert.ok(Math.hypot(label.x - original.x, label.y - original.y) < 20);
+test('13개 작업동의 신원과 네 공정의 물리 위치는 기기 방향·화면 크기로 바뀌지 않는다', () => {
+  const baseline = siteLayout(390, 844);
+  for (const [width,height] of [[360,640],[320,568],[768,1024],[1024,768],[1440,900]]) {
+    assert.deepEqual(siteLayout(width,height), baseline);
   }
+  assert.equal(baseline.plots.length,13);
+  assert.equal(baseline.facilities.length,4);
+  assert.equal(new Set([...baseline.plots,...baseline.facilities].map(p=>p.join(','))).size,17);
+  assert.deepEqual(processes.map(p=>p.key),['generation','review','stock','submission']);
 });
 
-test('360×640의 짧은 세로 관제도 여섯 행을 유지하고 좁은 높이 안에 모든 입력 영역을 담는다', () => {
-  assert.equal(siteLayout(360, 292).cols, 3);
-  const safe = { left: 24, right: 336, top: 4, bottom: 288 };
-  const labels = arrangeLabels(portrait, safe);
-  assertTargets(labels, safe);
-  for (let i = 3; i < portrait.length; i++) {
-    const label = labels.find(n => n.id === portrait[i].id);
-    const above = labels.find(n => n.id === portrait[i - 3].id);
-    assert.ok(label.y > above.y);
-  }
+test('네 지구는 4/3/3/3 계정과 자기 공정 하나를 지니고 다른 계정의 신원을 재사용하지 않는다', () => {
+  const layout=siteLayout(390,844),seen=[];
+  districtRanges.forEach(([first,last],district)=>{
+    const [cx,cz]=districtCenters[district];
+    const accounts=Array.from({length:last-first+1},(_,i)=>first+i);
+    assert.equal(accounts.length,district===0?4:3);
+    for(const number of accounts){
+      assert.equal(accountDistrict(number),district);
+      const [x,z]=layout.plots[number-1];
+      assert.ok(Math.abs(x-cx)<=6 && z>=cz-2 && z<=cz+11);
+      seen.push(number);
+    }
+    assert.deepEqual(layout.facilities[district],[cx,cz-11]);
+  });
+  assert.deepEqual(seen,Array.from({length:13},(_,i)=>i+1));
 });
 
-test('회전한 장면은 원래의 자유 배치를 유지한다', () => {
-  const nodes = Array.from({ length: 17 }, (_, i) => ({ id: String(i), x: 70 + i * 50, y: 60 + i * 8, width: 44, height: 44 }));
-  const safe = { left: 20, right: 940, top: 20, bottom: 260 };
-  const labels = arrangeLabels(nodes, safe);
-  assertTargets(labels, safe);
-  assert.deepEqual(labels, nodes);
+test('360×640에서 선택 트레이 위에 다섯 시설의 최소 48px 표찰이 겹치지 않고 들어간다', () => {
+  const safe={left:20,right:340,top:124,bottom:420};
+  const anchors=[{id:'generation',x:172,y:168,width:96,height:48},...[[115,247],[225,247],[115,351],[225,351]].map(([x,y],i)=>({id:String(i+1),x,y,width:62,height:51}))];
+  const original=structuredClone(anchors);
+  const labels=arrangeLabels(anchors,safe);
+  assertTargets(labels,safe,5);
+  assert.deepEqual(anchors,original);
+  for(const node of anchors){const placed=labels.find(l=>l.id===node.id);assert.ok(Math.hypot(placed.x-node.x,placed.y-node.y)<24,`${node.id}: spatial identity`);}
+});
+
+test('가장자리 확대 화면에서도 겹친 시설은 완전한 터치 영역을 유지한다', () => {
+  const safe={left:20,right:340,top:124,bottom:420};
+  const labels=arrangeLabels([
+    {id:'1',x:30,y:130,width:64,height:52},
+    {id:'2',x:55,y:145,width:64,height:52},
+    {id:'3',x:300,y:410,width:64,height:52},
+    {id:'4',x:315,y:412,width:64,height:52},
+  ],safe);
+  assertTargets(labels,safe,4);
 });

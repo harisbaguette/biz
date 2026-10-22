@@ -1,0 +1,34 @@
+@import './root-tokens.css';
+@font-face { font-family:Pretendard; src:url('./vendor/fonts/PretendardVariable.woff2') format('woff2'); font-weight:100 900; font-display:swap; }
+@font-face { font-family:Outfit; src:url('./vendor/fonts/Outfit-Variable.woff2') format('woff2'); font-weight:100 900; font-display:swap; }
+/* Compatibility names only. Values come from Pattove main, not the previous system. */
+:root {
+  --ui-font-body:var(--p-font); --ui-font-display:var(--p-display-font); --ui-font-mono:var(--p-mono-font);
+  --ui-bg:var(--p-bg); --ui-surface:var(--p-surface); --ui-surface-2:var(--p-high);
+  --ui-fg:var(--p-ink); --ui-fg-muted:var(--p-muted); --ui-fg-faint:var(--p-muted); --ui-fg-soft:var(--p-muted);
+  --ui-line:var(--p-control-border); --ui-line-soft:var(--p-line-subtle);
+  --ui-accent:var(--p-accent); --ui-accent-soft:var(--p-soft); --ui-accent-strong:var(--p-accent-hover); --ui-on-accent:var(--p-on-accent);
+  --ui-danger:var(--p-error); --ui-danger-soft:var(--p-error-soft); --ui-success:var(--p-success); --ui-success-soft:var(--p-success-soft);
+  --ui-warning:var(--p-warning); --ui-warning-soft:var(--p-warning-soft); --ui-info:var(--p-highlight); --ui-info-soft:var(--p-highlight-soft);
+  --ui-border:var(--p-border-width); --ui-border-thin:var(--p-border-width); --ui-radius:var(--p-control-radius);
+  --ui-ring:var(--p-highlight); --ui-ring-halo:var(--p-focus-glow); --ui-ring-width:var(--p-border-width-focus); --ui-ring-offset:var(--p-focus-offset);
+  --ui-shadow-hard:var(--p-control-shadow); --ui-shadow-hard-lg:var(--p-dialog-shadow); --ui-shadow-hard-press:var(--p-pressed); --ui-scrim:var(--p-backdrop);
+  --ui-step:var(--p-duration); --ui-leading:var(--p-leading-normal); --ui-leading-tight:var(--p-leading-tight);
+  --ui-weight-normal:var(--p-weight-regular); --ui-weight-medium:var(--p-weight-medium); --ui-weight-bold:var(--p-weight-bold);
+  --ui-text-xs:var(--p-text-sm); --ui-text-sm:var(--p-text-body); --ui-text-base:var(--p-text-md); --ui-text-lg:var(--p-text-title-sm);
+  --ui-text-xl:var(--p-text-title); --ui-text-2xl:var(--p-text-lg); --ui-text-3xl:var(--p-text-heading); --ui-text-display:var(--p-text-display);
+  --ui-gap-1:var(--p-space-2xs); --ui-gap-2:var(--p-space-xs); --ui-gap-3:var(--p-space-sm); --ui-gap-4:var(--p-space-md);
+  --ui-gap-5:calc(var(--p-space-unit) * 5); --ui-gap-6:var(--p-space-lg); --ui-gap-8:var(--p-space-xl); --ui-gap-10:var(--p-space-2xl); --ui-gap-12:var(--p-space-3xl);
+  --ui-tap-min:var(--p-control-size-sm); --ui-h-sm:var(--p-control-size-sm); --ui-h-md:var(--p-control-size-md); --ui-h-lg:var(--p-control-size-lg);
+}
+/* Existing business panels keep their semantic markup while migrating to ds-* components. */
+.ui-icon-button { display:inline-flex; align-items:center; justify-content:center; min-inline-size:var(--p-control-size-sm); min-block-size:var(--p-control-size-sm); border-radius:var(--p-control-radius); color:var(--p-ink); background:var(--p-surface); border:var(--p-border-width) solid var(--p-control-border); }
+.ui-icon-button:hover { background:var(--p-hover); }
+.ui-switch { appearance:none; display:inline-block; flex:none; inline-size:var(--p-control-size-sm); block-size:var(--p-icon-lg); border:var(--p-border-width) solid var(--p-control-border); border-radius:var(--p-radius-full); background:var(--p-disabled); position:relative; cursor:pointer; vertical-align:middle; }
+.ui-switch::before { content:''; position:absolute; inset-block-start:var(--p-size-hairline); inset-inline-start:var(--p-size-hairline); inline-size:var(--p-icon-md); block-size:var(--p-icon-md); border-radius:var(--p-radius-circle); background:var(--p-on-accent); box-shadow:var(--p-knob-shadow); transition:transform var(--p-duration); }
+.ui-switch:checked { background:var(--p-accent); }
+.ui-switch:checked::before { transform:translateX(var(--p-icon-md)); }
+.ui-badge { display:inline-flex; align-items:center; gap:var(--p-space-2xs); padding:var(--p-space-2xs) var(--p-space-xs); border-radius:var(--p-inner-radius); font-size:var(--p-text-sm); font-weight:var(--p-weight-semibold); color:var(--p-ink); background:var(--p-soft); }
+.ui-alert { padding:var(--p-space-sm); border:var(--p-border-width) solid var(--p-warning-line); border-radius:var(--p-inner-radius); color:var(--p-warning); background:var(--p-warning-soft); }
+.pattove-icon { display:inline-block; flex:none; object-fit:contain; vertical-align:middle; user-select:none; }
+@media(prefers-reduced-motion:reduce) { .ui-switch::before { transition:none; } }

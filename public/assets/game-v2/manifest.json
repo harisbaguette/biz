@@ -1,0 +1,455 @@
+{
+  "license": "CC0-1.0",
+  "models": [
+    {
+      "id": "building-A",
+      "url": "/assets/game-v2/building-A.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        1.65,
+        2
+      ],
+      "triangles": 828,
+      "bytes": 62016,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-B",
+      "url": "/assets/game-v2/building-B.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        1.65,
+        2
+      ],
+      "triangles": 1082,
+      "bytes": 77972,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-C",
+      "url": "/assets/game-v2/building-C.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        2.97662,
+        2
+      ],
+      "triangles": 1020,
+      "bytes": 74016,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-D",
+      "url": "/assets/game-v2/building-D.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        2.97,
+        2.02042
+      ],
+      "triangles": 1118,
+      "bytes": 82352,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-E",
+      "url": "/assets/game-v2/building-E.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2.00674,
+        2.35,
+        2.0
+      ],
+      "triangles": 1356,
+      "bytes": 97384,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-F",
+      "url": "/assets/game-v2/building-F.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2.00674,
+        2.35,
+        2.0
+      ],
+      "triangles": 1389,
+      "bytes": 96816,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-G",
+      "url": "/assets/game-v2/building-G.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2.00674,
+        2.97635,
+        2.0
+      ],
+      "triangles": 1711,
+      "bytes": 116256,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "building-H",
+      "url": "/assets/game-v2/building-H.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2.00674,
+        3.05,
+        2.0
+      ],
+      "triangles": 1885,
+      "bytes": 130612,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "car-hatchback",
+      "url": "/assets/game-v2/car-hatchback.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.41896,
+        0.36876,
+        0.80607
+      ],
+      "triangles": 1194,
+      "bytes": 69612,
+      "meshes": 5,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "car-sedan",
+      "url": "/assets/game-v2/car-sedan.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.41896,
+        0.36876,
+        0.93807
+      ],
+      "triangles": 1222,
+      "bytes": 71352,
+      "meshes": 5,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "car-stationwagon",
+      "url": "/assets/game-v2/car-stationwagon.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.41896,
+        0.36876,
+        0.93807
+      ],
+      "triangles": 1234,
+      "bytes": 72236,
+      "meshes": 5,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "box-A",
+      "url": "/assets/game-v2/box-A.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.2,
+        0.1764,
+        0.20308
+      ],
+      "triangles": 32,
+      "bytes": 14848,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "box-B",
+      "url": "/assets/game-v2/box-B.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.15206,
+        0.16963,
+        0.1544
+      ],
+      "triangles": 20,
+      "bytes": 13944,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "bush",
+      "url": "/assets/game-v2/bush.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.18936,
+        0.38053,
+        0.19909
+      ],
+      "triangles": 72,
+      "bytes": 15640,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "bench",
+      "url": "/assets/game-v2/bench.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.4,
+        0.1,
+        0.15
+      ],
+      "triangles": 44,
+      "bytes": 15376,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "streetlight",
+      "url": "/assets/game-v2/streetlight.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.26931,
+        0.95991,
+        0.06902
+      ],
+      "triangles": 176,
+      "bytes": 19784,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "watertower",
+      "url": "/assets/game-v2/watertower.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        0.49889,
+        0.67,
+        0.49889
+      ],
+      "triangles": 146,
+      "bytes": 20912,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "base",
+      "url": "/assets/game-v2/base.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        0.1,
+        2
+      ],
+      "triangles": 60,
+      "bytes": 15908,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "road-straight",
+      "url": "/assets/game-v2/road-straight.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        0.1,
+        2
+      ],
+      "triangles": 58,
+      "bytes": 16176,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "road-corner",
+      "url": "/assets/game-v2/road-corner.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        0.1,
+        2
+      ],
+      "triangles": 152,
+      "bytes": 19904,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "road-corner-curved",
+      "url": "/assets/game-v2/road-corner-curved.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        0.1,
+        2
+      ],
+      "triangles": 172,
+      "bytes": 20488,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "road-junction",
+      "url": "/assets/game-v2/road-junction.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2.0,
+        0.1,
+        2.0
+      ],
+      "triangles": 170,
+      "bytes": 22264,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "road-straight-crossing",
+      "url": "/assets/game-v2/road-straight-crossing.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        0.1,
+        2
+      ],
+      "triangles": 64,
+      "bytes": 16612,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "road-tsplit",
+      "url": "/assets/game-v2/road-tsplit.glb",
+      "pack": "KayKit City Builder Bits 1.0",
+      "size": [
+        2,
+        0.1,
+        2
+      ],
+      "triangles": 138,
+      "bytes": 20044,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "tree-A-small",
+      "url": "/assets/game-v2/tree-A-small.glb",
+      "pack": "KayKit Medieval Hexagon Pack 1.0",
+      "size": [
+        1.42633,
+        1.10894,
+        1.43502
+      ],
+      "triangles": 432,
+      "bytes": 38340,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "tree-A-medium",
+      "url": "/assets/game-v2/tree-A-medium.glb",
+      "pack": "KayKit Medieval Hexagon Pack 1.0",
+      "size": [
+        1.75142,
+        1.29535,
+        1.81428
+      ],
+      "triangles": 480,
+      "bytes": 41516,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "tree-B-small",
+      "url": "/assets/game-v2/tree-B-small.glb",
+      "pack": "KayKit Medieval Hexagon Pack 1.0",
+      "size": [
+        1.32837,
+        0.92187,
+        1.13843
+      ],
+      "triangles": 660,
+      "bytes": 31996,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "tree-B-medium",
+      "url": "/assets/game-v2/tree-B-medium.glb",
+      "pack": "KayKit Medieval Hexagon Pack 1.0",
+      "size": [
+        1.86383,
+        1.17404,
+        1.83318
+      ],
+      "triangles": 1100,
+      "bytes": 46932,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "crate",
+      "url": "/assets/game-v2/crate.glb",
+      "pack": "KayKit Medieval Hexagon Pack 1.0",
+      "size": [
+        0.21,
+        0.21,
+        0.21
+      ],
+      "triangles": 132,
+      "bytes": 16792,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    },
+    {
+      "id": "pallet",
+      "url": "/assets/game-v2/pallet.glb",
+      "pack": "KayKit Medieval Hexagon Pack 1.0",
+      "size": [
+        0.3,
+        0.08,
+        0.3
+      ],
+      "triangles": 72,
+      "bytes": 14780,
+      "meshes": 1,
+      "origin": "XZ center; bottom Y=0",
+      "up": "+Y"
+    }
+  ]
+}

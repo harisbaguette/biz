@@ -1,0 +1,2 @@
+.ds .ds-confirm-row { display:flex; flex-wrap:wrap; justify-content:flex-end; align-items:center; gap:var(--p-space-xs); min-width:0; }
+.ds .ds-confirm-row > .ds-button { flex:0 1 auto; }

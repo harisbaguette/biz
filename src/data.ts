@@ -1,4 +1,5 @@
 import type { Account, Asset, Lane, Snapshot, WorldData } from "./types";
+export const accountLabel = (account: Pick<Account, "number">) => `${account.number}번 계정`;
 export function outstandingFailures(data: Pick<WorldData, "commands" | "schedules">) {
   const latest = new Map<string, WorldData["commands"][number]>();
   for (const command of [...data.commands].sort((a, b) => b.created_at.localeCompare(a.created_at) || b.id.localeCompare(a.id))) {
@@ -111,6 +112,7 @@ export function uploadCondition(s: Snapshot) {
 export function normalizedSnapshot(s: Snapshot): Snapshot {
   const health = uploadCondition(s);
   return { ...s, accounts: s.accounts.map(a => ({ ...a,
+    name: accountLabel(a),
     running: a.running && health.active,
     ...(a.running && health.issue ? { status: "worker_unconfirmed", message: health.detail } : {}),
   })) };
@@ -173,7 +175,7 @@ export function laneCondition(lane: Lane | undefined, enabled: boolean) {
     detail: issue ? ({
       storage_wait: "운영 맥과 NAS의 저장 공간을 확보하세요. 공간이 확보되면 원본 작업기가 자동 재개합니다.",
       provider_wait: "운영 맥의 원본 작업실에서 연결한 서비스 상태와 이용 한도를 확인하세요. 복구 후 다음 순회에서 다시 시도합니다.",
-      planning_wait: "운영 맥의 원본 작업실에서 기획 설정과 실패 기록을 확인하세요. 수정 후 다음 시도 결과를 확인합니다.",
+      planning_wait: `${lane.message || "새 제작 기획을 확보하지 못했습니다."} ${lane.nextAt ? date(lane.nextAt, true) + " 이후 " : "다음 순회에서 "}다른 주제와 부족한 종류로 자동 재시도합니다.`,
       retry_wait: "원본 작업기가 다음 순회에서 다시 시도합니다. 반복되면 운영 맥의 원본 작업실에서 실패 원인을 확인하세요.",
     }[lane.status || ""] || "운영 맥의 원본 작업실에서 작업기 상태를 확인하세요. 확인되지 않은 상태를 정상으로 처리하지 않습니다.") : "",
   };

@@ -1,8 +1,9 @@
-import { useEffect, useRef, useState, type FormEvent, type SelectHTMLAttributes } from "react";
-import { Plus, RefreshCw, ChevronDown } from "lucide-react";
+import { Children, isValidElement, useEffect, useRef, useState, type FormEvent, type SelectHTMLAttributes } from "react";
+import { Plus, RefreshCw } from "./Icons";
 import type { Business } from "../types";
 import { date, post, request } from "../data";
 import { Empty, Modal } from "./Primitives";
+import { Button, Input, Select } from "../design-system/components";
 import "./Management.css";
 
 interface RecordItem {
@@ -17,10 +18,9 @@ const kinds: Record<string, string> = { plan: "계획", report: "보고", decisi
 const states: Record<string, string> = { planned: "예정", active: "진행 중", blocked: "해결 필요", done: "완료", recorded: "기록", archived: "보관" };
 const statuses = (kind: string) => kind === "plan" ? ["planned", "active", "blocked", "done", "archived"] : ["recorded", "archived"];
 const kstInput = (value: string | null) => value ? new Date(Date.parse(value) + 9 * 3600000).toISOString().slice(0, 16) : "";
-function Select({ label, children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
-  return <label className="ui-field"><span className="ui-field__label">{label}</span><span className="ui-native-select">
-    <select className="ui-native-select__el" {...props}>{children}</select><span className="ui-native-select__arrow" aria-hidden="true"><ChevronDown size={18}/></span>
-  </span></label>;
+function RecordSelect({ label, children, ...props }: SelectHTMLAttributes<HTMLSelectElement> & { label: string }) {
+  const items = Children.toArray(children).filter(isValidElement<{value:string;children:string;disabled?:boolean}>).map(option => ({value:String(option.props.value),label:String(option.props.children),disabled:option.props.disabled}));
+  return <Select label={label} {...props} items={items} />;
 }
 
 export function Management({ businesses, toast }: { businesses: Business[]; toast: (text: string) => void }) {
@@ -69,37 +69,37 @@ export function Management({ businesses, toast }: { businesses: Business[]; toas
   }
   return <>
     <div className="management-toolbar">
-      <Select label="사업" value={business} onChange={e => setBusiness(e.target.value)}>
+      <RecordSelect label="사업" value={business} onChange={e => setBusiness(e.target.value)}>
         <option value="portfolio">공통 운영</option>
         <option value="miricanvas">미리캔버스</option>
         {businesses.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-      </Select>
-      <button className="ui-button button secondary" onClick={() => edit()}><Plus size={17}/> 기록 추가</button>
+      </RecordSelect>
+      <Button variant="outline" className="ui-button" onClick={() => edit()}><Plus size={17}/> 기록 추가</Button>
     </div>
-    <p className="muted management-help">사업별 계획, 진행 보고와 결정을 모읍니다. 실행 지시는 운영과 일정에서 관리합니다.</p>
-    {error && <div role="alert"><p className="form-error">{error}</p><button className="ui-button ui-button--ghost text-button" onClick={() => setVersion(v => v + 1)}><RefreshCw size={16}/> 다시 불러오기</button></div>}
+
+    {error && <div role="alert"><p className="form-error">{error}</p><Button variant="ghost" className="ui-button text-button" onClick={() => setVersion(v => v + 1)}><RefreshCw size={16}/> 다시 불러오기</Button></div>}
     {!loading && !error && !items.length && <Empty>아직 운영 기록이 없습니다.</Empty>}
     <div className="management-records">{items.map(item => <details key={item.id} className={"management-record " + (item.status === "archived" ? "archived" : "")}>
       <summary><small>{kinds[item.kind]} · {states[item.status]} · {date(item.updated_at, true)}</small><strong>{item.title}</strong></summary>
       {item.due_at && <p className="muted">목표일 {date(item.due_at, true)}</p>}
       <p className="management-content">{item.content}</p>
-      <button className="ui-button ui-button--ghost text-button" onClick={() => edit(item)}>기록 수정</button>
+      <Button variant="ghost" className="ui-button text-button" onClick={() => edit(item)}>기록 수정</Button>
     </details>)}</div>
     {loading && <p role="status" className="muted">기록을 불러오는 중…</p>}
-    {cursor && <button className="ui-button button secondary full" disabled={loading} onClick={more}>이전 기록 더 보기</button>}
+    {cursor && <Button variant="outline" className="ui-button full" disabled={loading} onClick={more}>이전 기록 더 보기</Button>}
     {draft && <Modal title={draft.revision ? "운영 기록 수정" : "운영 기록 추가"} onClose={() => { if (!busy) setDraft(null); }}>
       <form className="ui-form" onSubmit={save}>
-        <Select label="종류" value={draft.kind} onChange={e => setDraft({ ...draft, kind: e.target.value, status: e.target.value === "plan" ? "planned" : "recorded", due: e.target.value === "plan" ? draft.due : "" })}>
+        <RecordSelect label="종류" value={draft.kind} onChange={e => setDraft({ ...draft, kind: e.target.value, status: e.target.value === "plan" ? "planned" : "recorded", due: e.target.value === "plan" ? draft.due : "" })}>
           {Object.entries(kinds).map(([key, label]) => <option value={key} key={key}>{label}</option>)}
-        </Select>
-        <label className="ui-field">제목<input className="ui-input" required maxLength={120} value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })}/></label>
+        </RecordSelect>
+        <label className="ui-field">제목<Input className="ui-input" required maxLength={120} value={draft.title} onChange={e => setDraft({ ...draft, title: e.target.value })}/></label>
         <label className="ui-field">내용<textarea className="ui-textarea" required rows={8} maxLength={10000} value={draft.content} onChange={e => setDraft({ ...draft, content: e.target.value })}/></label>
-        <Select label="상태" value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value })}>
+        <RecordSelect label="상태" value={draft.status} onChange={e => setDraft({ ...draft, status: e.target.value })}>
           {statuses(draft.kind).map(key => <option key={key} value={key}>{states[key]}</option>)}
-        </Select>
-        {draft.kind === "plan" && <label className="ui-field">목표일 · 한국 시간 (선택)<input className="ui-input" type="datetime-local" value={draft.due} onChange={e => setDraft({ ...draft, due: e.target.value })}/></label>}
+        </RecordSelect>
+        {draft.kind === "plan" && <label className="ui-field">목표일 · 한국 시간 (선택)<Input className="ui-input" type="datetime-local" value={draft.due} onChange={e => setDraft({ ...draft, due: e.target.value })}/></label>}
         {saveError && <p role="alert" className="form-error">{saveError}</p>}
-        <button className="ui-button ui-button--primary button primary full" disabled={busy}>{busy ? "저장 중…" : "기록 저장"}</button>
+        <Button variant="primary" type="submit" className="ui-button full" disabled={busy}>{busy ? "저장 중…" : "기록 저장"}</Button>
       </form>
     </Modal>}
   </>;

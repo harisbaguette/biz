@@ -1,0 +1,9 @@
+.ds .ds-field,.ds .ds-select-field { display:grid; gap:var(--p-space-xs); min-width:0; font-size:var(--p-text-body); }
+.ds .ds-field > label,.ds .ds-select-field > span { font-weight:var(--p-weight-semibold); }
+.ds .ds-help { font-size:var(--p-text-sm); color:var(--p-muted); line-height:var(--p-leading-normal); }
+.ds .ds-field[data-state="error"] .ds-help { color:var(--p-error); }
+.ds .ds-field[data-state="error"] .ds-help::before { content:'!'; display:inline-grid; place-items:center; width:var(--p-size-md); height:var(--p-size-md); font-size:var(--p-text-sm); border:var(--p-border-width) solid currentColor; border-radius:var(--p-radius-circle); margin-right:var(--p-space-2xs); }
+.ds .ds-field[data-state="success"] .ds-help { color:var(--p-success); }
+.ds .ds-field[data-state="success"] .ds-help::before { content:'✓'; margin-right:var(--p-space-2xs); }
+.ds .ds-field[data-state="success"] .ds-input { border-color:var(--p-success); }
+.ds .ds-field[data-state="focus"] .ds-input { outline:var(--p-border-width-focus) solid var(--p-highlight); outline-offset:var(--p-focus-offset); }

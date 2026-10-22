@@ -1,112 +1,125 @@
-import { test, expect, type Page } from '@playwright/test';
-// @ts-expect-error Exercise the real Worker through an isolated D1 adapter.
-import { api } from '../worker/index.mjs';
-// @ts-expect-error In-memory SQLite implementation of the D1 contract.
-import { database } from './db.mjs';
-let baseline: any;
-test.beforeAll(async () => { baseline = await (await fetch('http://127.0.0.1:4317/api/world')).json(); });
-async function fixture(page: Page, options: { issue?: boolean; invalidTime?: boolean } = {}) {
-  const DB = database(), snapshot = structuredClone(baseline.snapshot);
-  snapshot.observedAt = new Date().toISOString();
-  snapshot.automation = { ...snapshot.automation, enabled: false, productionEnabled: false, runLockActive: false, lanes: {}, nextAt: options.invalidTime ? 'invalid-time' : new Date(Date.now() + 3600000).toISOString() };
-  for (const account of snapshot.accounts) Object.assign(account, { status: 'ready_for_upload', bound: true, running: false });
-  if (options.issue) Object.assign(snapshot.accounts[0], { status: 'login_required', message: '로그인이 필요합니다.' });
-  await DB.prepare('INSERT INTO snapshots VALUES(?,?,?)').bind('miricanvas', JSON.stringify(snapshot), new Date().toISOString()).run();
-  const env = { DB, LOCAL_MODE: true, BRIDGE_TOKEN: 'redesign-isolated' };
-  await page.route('**/api/**', async route => {
-    const r = route.request(), url = new URL(r.url());
-    if (url.pathname.startsWith('/api/thumbnail/')) return route.continue();
-    const headers = new Headers(r.headers()); headers.set('Origin', url.origin);
-    const response = await api(new Request(r.url(), { method: r.method(), headers, body: r.method() === 'GET' ? undefined : r.postDataBuffer() }), env);
-    if (url.pathname === '/api/world') { const data = await response.json(); data.thumbnails = baseline.thumbnails; return route.fulfill({ status: response.status, json: data }); }
-    return route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
-  });
-  await page.addInitScript(() => localStorage.setItem('biz-reduced', 'true'));
-  return { DB, snapshot };
-}
-async function ready(page: Page) { await page.goto('/'); await page.waitForFunction(() => (window as any).__bizWorld?.ready); }
+import { test, expect } from "@playwright/test";
+import { baselineWorld, enter, fixture } from "./game-fixture";
 
-test('모바일 문제 계정으로 바로 들어가 재고와 복구 행동을 한 화면에서 본다', async ({ page }) => {
-  await page.setViewportSize({ width: 375, height: 844 });
-  await fixture(page, { issue: true }); await ready(page);
-  await page.locator('.attention').click();
-  await expect(page.locator('.panel-account')).toBeVisible();
-  await expect(page.getByRole('button', { name: '재확인', exact: true })).toBeVisible();
-  const stock = await page.locator('.account-stock').boundingBox();
-  const footer = await page.locator('.panel-footer').boundingBox();
-  expect(stock!.y + stock!.height).toBeLessThanOrEqual(footer!.y);
-  await expect(page.locator('.panel-account details').filter({ hasText: '확인 기록' })).not.toHaveAttribute('open');
+test.beforeAll(async () => { await baselineWorld(); });
+
+test("문제 계정의 섬 경고를 열면 재고와 복구 지시가 이어진다", async ({ page }) => {
+  await fixture(page, { issue: true });
+  await page.setViewportSize({ width: 375, height: 812 });
+  await enter(page);
+  await page.getByRole("button", { name: /확인할 일/ }).click();
+  await expect(page.getByRole("region", { name: "시설 행동" })).toContainText("1번 계정");
+  await expect(page.getByRole("button", { name: "재확인", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "재고 보기", exact: true }).click();
+  await expect(page.locator(".panel-inventory")).toBeVisible();
+  await expect(page.getByRole("button", { name: "패널 닫기" })).toBeVisible();
 });
 
-test('작은 화면에서 패널 뒤 지도는 키보드 탐색에 끼어들지 않는다', async ({ page }) => {
+test("상세 패널을 열면 지도와 HUD가 키보드 탐색에서 빠지고 닫은 뒤 시설로 돌아간다", async ({ page }) => {
+  const { baseline } = await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  await fixture(page); await ready(page);
-  for (const name of ['작업동', '재고', '일정', '확인할 일', '운영']) {
-    const open = page.getByRole('navigation').getByRole('button', { name, exact: true });
-    await open.click();
-    expect(await page.locator('.world-stage').evaluate(e => (e as HTMLElement).inert)).toBe(true);
-    for (let i = 0; i < 8; i++) {
-      await page.keyboard.press('Tab');
-      expect(await page.evaluate(() => Boolean(document.activeElement?.closest('.world-stage')))).toBe(false);
-    }
-    await page.getByRole('button', { name: '패널 닫기' }).click();
-    expect(await page.locator('.world-stage').evaluate(e => (e as HTMLElement).inert)).toBe(false);
-    await expect(open).toBeFocused();
+  await enter(page);
+  await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
+  await page.getByRole("button", { name: "상세" }).click();
+  await expect(page.locator(".world-stage")).toHaveJSProperty("inert", true);
+  await expect(page.locator(".game-hud")).toHaveJSProperty("inert", true);
+  for (let i = 0; i < 8; i++) {
+    await page.keyboard.press("Tab");
+    expect(await page.evaluate(() => Boolean(document.activeElement?.closest(".world-stage,.game-hud,.district-dock,.game-tray")))).toBe(false);
   }
+  await page.getByRole("button", { name: "패널 닫기" }).click();
+  await expect(page.locator(".world-stage")).toHaveJSProperty("inert", false);
+  await expect(page.getByRole("button", { name: "상세" })).toBeFocused();
 });
 
-test('태블릿 재고는 원본 미리보기를 과도하게 늘리지 않고 충분한 열로 보인다', async ({ page }) => {
+test("태블릿 세로 재고는 화면 너비 안에 카드와 검색을 유지한다", async ({ page }) => {
+  const { baseline } = await fixture(page);
   await page.setViewportSize({ width: 768, height: 1024 });
-  await fixture(page); await ready(page);
-  await page.getByRole('navigation').getByRole('button', { name: '재고', exact: true }).click();
-  await page.getByRole('button', { name: '전체', exact: true }).click();
-  const widths = await page.locator('.inventory-grid > button').evaluateAll(items => items.map(item => item.getBoundingClientRect().width));
+  await enter(page);
+  await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
+  await page.getByRole("button", { name: "재고 보기", exact: true }).click();
+  await page.getByRole("button", { name: "전체", exact: true }).click();
+  const widths = await page.locator(".inventory-grid > button").evaluateAll(items => items.map(item => item.getBoundingClientRect().width));
   expect(widths.length).toBeGreaterThan(3);
-  expect(Math.max(...widths)).toBeLessThan(220);
+  expect(Math.max(...widths)).toBeLessThan(240);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
-test('일정 취소 실패는 경고로 알리고 원래 일정을 남긴다', async ({ page }) => {
+test("일정 취소 요청이 실패하면 오류를 알리고 원래 일정을 남긴다", async ({ page }) => {
+  const { DB, baseline } = await fixture(page);
   await page.setViewportSize({ width: 390, height: 844 });
-  const { DB } = await fixture(page);
-  await DB.prepare('INSERT INTO schedules VALUES(?,?,?,?,?,?,?)').bind('redesign-cancel-fail', '1', '취소 실패 검증', new Date(Date.now() + 3600000).toISOString(), 'memo', 'planned', new Date().toISOString()).run();
-  await page.route('**/api/schedules/redesign-cancel-fail', route => route.fulfill({ status: 503, json: { error: '일정을 취소하지 못했습니다.' } }));
-  await ready(page);
-  await page.getByRole('navigation').getByRole('button', { name: '일정', exact: true }).click();
-  await page.locator('.timeline-item').filter({ hasText: '취소 실패 검증' }).getByRole('button', { name: '취소 실패 검증 취소', exact: true }).click();
-  await expect(page.locator('.toast[role="alert"]')).toContainText('일정을 취소하지 못했습니다.');
-  await expect(page.locator('.toast .lucide-check')).toHaveCount(0);
-  await expect(page.locator('.timeline-item').filter({ hasText: '취소 실패 검증' })).toBeVisible();
+  await DB.prepare("INSERT INTO schedules VALUES(?,?,?,?,?,?,?)")
+    .bind("game-cancel-fail", baseline.snapshot.accounts[0].id, "취소 실패 검증", new Date(Date.now() + 3600000).toISOString(), "memo", "planned", new Date().toISOString()).run();
+  await page.route("**/api/schedules/game-cancel-fail", route => route.fulfill({ status: 503, json: { error: "일정을 취소하지 못했습니다." } }));
+  await enter(page);
+  await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
+  await page.getByRole("button", { name: /제출 일정/ }).click();
+  const row = page.locator(".timeline-item").filter({ hasText: "취소 실패 검증" });
+  await row.getByRole("button", { name: "취소 실패 검증 취소", exact: true }).click();
+  await expect(page.locator(".toast[role='alert']")).toContainText("일정을 취소하지 못했습니다.");
+  await expect(row).toBeVisible();
 });
 
-test('다음 확인 시각이 잘못되어도 단지와 다른 업무는 사용할 수 있다', async ({ page }) => {
-  const errors: string[] = []; page.on('pageerror', e => errors.push(e.message));
-  await fixture(page, { invalidTime: true }); await ready(page);
-  await expect(page.locator('.park-summary')).toContainText('예정 없음');
-  await page.getByRole('navigation').getByRole('button', { name: '재고', exact: true }).click();
-  await expect(page.getByRole('textbox', { name: '재고 검색' })).toBeVisible();
+test("잘못된 예정 시각이 있어도 섬·재고 업무를 쓸 수 있고 오류가 없다", async ({ page }) => {
+  const { baseline } = await fixture(page, { invalidTime: true });
+  await page.setViewportSize({ width: 360, height: 640 });
+  const errors: string[] = []; page.on("pageerror", error => errors.push(error.message));
+  await enter(page);
+  await page.getByRole("button", { name: "상태 수신" }).click();
+  await expect(page.locator(".panel-automation")).toBeVisible();
+  await expect(page.locator(".panel-automation")).toContainText("예정 없음");
+  await page.getByRole("button", { name: "패널 닫기" }).click();
+  await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
+  await page.getByRole("button", { name: "재고 보기", exact: true }).click();
+  await expect(page.getByRole("textbox", { name: "재고 검색" })).toBeVisible();
   expect(errors).toEqual([]);
 });
 
-test('휴대전화 글자 200%에서도 본문을 읽고 일정과 재확인 버튼을 쓸 수 있다', async ({ page }) => {
+test("큰 글자에서도 계정 상세와 일정 입력을 읽고 취소할 수 있다", async ({ page }) => {
+  const { baseline } = await fixture(page);
   await page.setViewportSize({ width: 360, height: 740 });
-  await fixture(page, { issue: true }); await ready(page);
-  await page.locator('.attention').click();
-  await page.addStyleTag({ content: 'html { font-size: 200% !important; }' });
-  await expect.poll(async () => (await page.locator('.panel-body').boundingBox())!.height).toBeGreaterThan(200);
+  await enter(page);
+  await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
+  await page.getByRole("button", { name: "상세" }).click();
+  const originalFont = await page.locator(".panel-body").evaluate(element => parseFloat(getComputedStyle(element).fontSize));
+  await page.addStyleTag({ content: "html { font-size: 200% !important; }" });
+  await expect.poll(async () => page.locator(".panel-body").evaluate(element => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(originalFont * 1.8);
+  await expect.poll(async () => (await page.locator(".panel-body").boundingBox())!.height).toBeGreaterThan(200);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.evaluate(() => document.fonts.ready);
-  await expect.poll(async () => {
-    const buttons = await page.locator('.panel-footer button').evaluateAll(items => items.map(e => ({
-      font: parseFloat(getComputedStyle(e).fontSize), height: e.getBoundingClientRect().height, overflow: e.scrollWidth > e.clientWidth,
-    })));
-    return buttons.every(b => b.font >= 30 && b.height < 100 && !b.overflow);
-  }).toBe(true);
-  await page.locator('.account-stock').scrollIntoViewIfNeeded();
-  await expect(page.locator('.account-stock')).toBeInViewport();
-  await page.getByRole('button', { name: '일정 추가', exact: true }).click();
-  await page.getByRole('button', { name: '일정 저장', exact: true }).scrollIntoViewIfNeeded();
-  await expect(page.getByRole('button', { name: '일정 저장', exact: true })).toBeInViewport();
-  await page.keyboard.press('Escape');
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  const touchTargets = await page.locator(".panel-account button").evaluateAll(items => items.map(item => {
+    const box = item.getBoundingClientRect();
+    return { width: box.width, height: box.height };
+  }));
+  expect(touchTargets.length).toBeGreaterThan(0);
+  expect(touchTargets.every(box => box.width >= 44 && box.height >= 44)).toBe(true);
+  await page.getByRole("button", { name: "패널 닫기" }).click();
+  await page.getByRole("button", { name: /제출 일정/ }).click();
+  await page.getByRole("button", { name: "일정 추가", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "일정 추가" });
+  await dialog.getByLabel("할 일", { exact: true }).fill("큰 글자 검증 일정");
+  await dialog.getByLabel("일시", { exact: false }).fill(new Date(Date.now() + 48 * 3600000).toISOString().slice(0, 16));
+  await dialog.getByRole("button", { name: "일정 저장" }).scrollIntoViewIfNeeded();
+  await expect(dialog.getByRole("button", { name: "일정 저장" })).toBeInViewport();
+  await page.keyboard.press("Escape");
+  await expect(dialog).not.toBeVisible();
+});
+
+test("앱 로드 전 200% 글자 설정에서도 세로 화면의 시설 선택과 상세 조작이 된다", async ({ page }) => {
+  const { baseline } = await fixture(page);
+  await page.route("**/", async route => {
+    const response = await route.fetch();
+    const html = (await response.text()).replace("<head>", "<head><style>html{font-size:200%!important}</style>");
+    await route.fulfill({ response, body: html });
+  });
+  await page.setViewportSize({ width: 360, height: 640 });
+  await enter(page);
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).fontSize)).toBe("32px");
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.locator(`[data-account="${baseline.snapshot.accounts[0].id}"]`).click();
+  await expect(page.getByRole("region", { name: "시설 행동" })).toBeVisible();
+  await page.getByRole("button", { name: "상세", exact: true }).click();
+  await expect(page.locator(".panel-account")).toBeVisible();
+  await expect(page.getByRole("button", { name: "패널 닫기" })).toBeInViewport();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  await page.screenshot({ path: "artifacts/mobile-game/qa/initial-200-selected.png", animations: "disabled" });
 });

@@ -43,6 +43,8 @@ export interface Asset {
   updatedAt: string;
 }
 export interface Lane {
+  nextAt?: string | null;
+  message?: string;
   status: string | null;
   phase: string | null;
   number: number | null;

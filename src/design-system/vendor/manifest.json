@@ -1,28 +1,480 @@
 {
-  "source": "hong-designsystem/assets/css/ui",
+  "source": "디자인시스템/실행관리(Ops-Run)",
+  "system": "Pattove",
+  "style": "main",
+  "version": "0.8.0",
+  "components": [
+    "button",
+    "icon-button",
+    "input",
+    "field",
+    "select",
+    "badge",
+    "switch",
+    "dialog",
+    "bottom-nav",
+    "empty-state"
+  ],
+  "icons": [
+    "ICO-445",
+    "ICO-753",
+    "ICO-453",
+    "ICO-454",
+    "ICO-455",
+    "ICO-280",
+    "ICO-319",
+    "lucide:scan-line",
+    "lucide:clock-3",
+    "ICO-122",
+    "ICO-94",
+    "lucide:move-3d",
+    "ICO-831",
+    "ICO-595",
+    "lucide:key-round",
+    "ICO-531",
+    "ICO-395",
+    "ICO-25",
+    "ICO-41",
+    "ICO-72",
+    "ICO-40",
+    "lucide:settings-2",
+    "ICO-96",
+    "ICO-349",
+    "ICO-01",
+    "ICO-263",
+    "ICO-95",
+    "ICO-203",
+    "ICO-204",
+    "ICO-326",
+    "ICO-817",
+    "ICO-699",
+    "ICO-955",
+    "ICO-427",
+    "lucide:gamepad-2",
+    "ICO-592",
+    "lucide:notebook-pen",
+    "ICO-62",
+    "ICO-49",
+    "ICO-645",
+    "ICO-153",
+    "ICO-08",
+    "ICO-733",
+    "lucide:image-off",
+    "lucide:lock-keyhole",
+    "lucide:loader-circle",
+    "ICO-804"
+  ],
   "files": {
-    "seed.css": "1cd3affdb3839d05ea3f6eda6addac35ba884932b1da8cc76e639dd5053b9c55",
-    "tokens.css": "722f217f04490b3311efb1a40d42e9f84d816d1fc76d7d12ddbaa064879360ab",
-    "base.css": "78ec707dc5b59203619167f3185e66a63f6fe883170d3ee75d7de551bb86ba3d",
-    "c/page-app.css": "c15d5a5c95ebc5030319443c120a8345927383651240cd8774aa4fd17066f1b3",
-    "c/page-auth.css": "e179850c75ffcad4e4fc9106103a90530e9e9f4b791085a0e19b9e507309eced",
-    "c/nav-rail.css": "beb9c6eca68f5a4f7dc7177036f548a61e5b5f3065b3421c9680065d9f2ef62a",
-    "c/bottom-nav.css": "dcdcf260981b144995e126563206c2ec08aa49d18b05ffadfe8ae382043ad620",
-    "c/block-list.css": "7666b74e06708cfb146a5a9119e13034fb7f080e1fb3c36e493be5b30af983cc",
-    "c/description-list.css": "ea05fb47e7ec2ad4a52cf3b7277f75083a849ab149ad4e9a6c6ce59a39a13f30",
-    "c/button.css": "55f1b64f876be025d92b015043f09019b4b435777832aeb61ff0493cec0cad0f",
-    "c/icon-button.css": "612ff7a5d28900f2e6437e6501a130f43ce4a43758024aa2af876f62ebad0bf3",
-    "c/input.css": "a8c67e9bf57f30bdad9504105e6f930b1cb581ca7c2f695ce4115483b0f7e1f4",
-    "c/native-select.css": "92c7e9ca09c0aeee162089b51971df9b15b1bf6ef8d7ee17cd269ac29d7f1fcf",
-    "c/field.css": "3de94afc1c1402ca78057c32d82190a0adacf547b175369c1661e0c44b6ad33c",
-    "c/form.css": "fdbe4433f9b060a8a10e7e308db1bea8a1a01ef36591d2d0c9666f7f87be9954",
-    "c/dialog.css": "435820866336962f17d5b15f3f43f934a8f87fcf25fcd74de50ba6ba5faf109e",
-    "c/sheet.css": "339fe44097dde2036b1c1734aed9b41beba7a905e457fb342310bcdfa8f04e32",
-    "c/badge.css": "91dc5e4f524bc723212549af877e6a512bd3aaf452c39f8e86702534a4288084",
-    "c/alert.css": "006b50a0f6f7943d451cd6ad0166c22cd4768efd64ea37f48cb0a51c834d1ada",
-    "c/switch.css": "5f216eb03a9ed92778027606182e3e0f98c1dc40aa1bab5d9b150c9a5a057cf8",
-    "c/pagination.css": "071002fdc714b4482d0984f35810cabeed0de036afd3b823a7ece0ef49ef4436",
-    "c/search-box.css": "5fd494560a5b5e198af342abb90de864a96fdf14f6e58b1e70723cd9a0eda993",
-    "c/toolbar.css": "a2fdb6d3c3273f238819ae74da88409e5354549fbbd9a804a7678211a8b39800"
+    "base.css": {
+      "sha256": "67bcbf484cc5c874ef701b80b88be46dea717a2c19805535765a0a6f0b34f84c",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/base.css"
+    },
+    "styles/main/color.css": {
+      "sha256": "35a6be9f6c9a0659b9a8ce8bcf83fc4ce62d65d280d619c8f275e8e750dc38ff",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/color.css"
+    },
+    "styles/main/typography.css": {
+      "sha256": "843fa690e109bf1858a18a7abe54f0b4776828db3f13c8f04edc61340bdbe441",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/typography.css"
+    },
+    "styles/main/text.css": {
+      "sha256": "f8ba65452f7b4d4eb5abb411a5096614f6c69c3c3776a4b24e554d525145a58d",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/text.css"
+    },
+    "styles/main/weight.css": {
+      "sha256": "c8f0177858ea01c4063e16e5d065a48ea127e85fa288f4de62f475cbf3b67a98",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/weight.css"
+    },
+    "styles/main/leading.css": {
+      "sha256": "b628a73ad1d710f7d466c3209b85d982503df662bf89bfab1487832a0a6cee09",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/leading.css"
+    },
+    "styles/main/space.css": {
+      "sha256": "f93fbe1064a36a00e5e70e637fd87e1a07a102aee071c0e66b2bb30208b5aece",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/space.css"
+    },
+    "styles/main/size.css": {
+      "sha256": "f16d1f012a67392039cbb8a1c02a26101fc8ca8e28f7b63bb29921457faf0890",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/size.css"
+    },
+    "styles/main/radius.css": {
+      "sha256": "ab86012112e8ff2bef077a265c5ba5b7426c88bf544a4439506e68a0d5eded01",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/radius.css"
+    },
+    "styles/main/border.css": {
+      "sha256": "69e311c53be1e006728f18c199de59a266062ff6e530f73917cea0031c7ea4f3",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/border.css"
+    },
+    "styles/main/stroke.css": {
+      "sha256": "462bbf4a1fa3f4946dac6de7fe5a14bb0d6c49e25a6b1c6151cb219973ceaafe",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/stroke.css"
+    },
+    "styles/main/shadow.css": {
+      "sha256": "b170b4c824cce162048e4a9a6786780c37d3341d3b355ff4b803c8e0e6b7aa68",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/shadow.css"
+    },
+    "styles/main/blur.css": {
+      "sha256": "604d73c657a5d14ecb1ebc71362566b9f5a17e3fa181d9252157e0c4274439aa",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/blur.css"
+    },
+    "styles/main/opacity.css": {
+      "sha256": "e587679a40b19e43eb0f07bd2dc69236a20ce969838ee6dc8a33671604550a97",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/opacity.css"
+    },
+    "styles/main/motion.css": {
+      "sha256": "6ebd161444aa48162b07d0cd8bb35fc48ce65914c6fb31586a8be374128df09a",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/styles/main/motion.css"
+    },
+    "css/button.css": {
+      "sha256": "babf088c5551086bb39b00832b69e1225745df73fd4acd91c62e8dd433abc07c",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/css/button.css"
+    },
+    "react/button.jsx": {
+      "sha256": "1b217e349109360c4ff3b92457ba233d82f77c13414d71c56c11001e64949864",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/react/button.jsx"
+    },
+    "css/icon-button.css": {
+      "sha256": "917a52a3fb37213e9e7040a63a29a77191567076e62a9da4b67e83a446b7ceb4",
+      "source": "src/registry/r/pattove-main-icon-button-react.json#design/css/icon-button.css"
+    },
+    "react/icon-button.jsx": {
+      "sha256": "1f6ea078ef2c2acd13a340c0b393256bd9dbad5e8a8bcec9fd115c95ce4ded1e",
+      "source": "src/registry/r/pattove-main-icon-button-react.json#design/react/icon-button.jsx"
+    },
+    "css/input.css": {
+      "sha256": "9e13d25325234aaee14f50bbfb5fe24b0d7417d6f8f46238cac32f4c98c348f7",
+      "source": "src/registry/r/pattove-main-select-react.json#design/css/input.css"
+    },
+    "react/input.jsx": {
+      "sha256": "8ef3c313ef7901179371a4618b49660263747a80d5af993e7217d4f9e2c52f25",
+      "source": "src/registry/r/pattove-main-select-react.json#design/react/input.jsx"
+    },
+    "css/field.css": {
+      "sha256": "a5defcc7b0a02ac686cc345e4366bf2113d6a6667fc4adb97806fa2c7a5506ee",
+      "source": "src/registry/r/pattove-main-select-react.json#design/css/field.css"
+    },
+    "react/field.jsx": {
+      "sha256": "48fd483708a6121173685fd59b95c89aa9db48406bccd8fe5ea9d7fcb9ed9f18",
+      "source": "src/registry/r/pattove-main-select-react.json#design/react/field.jsx"
+    },
+    "css/select.css": {
+      "sha256": "86ea488d1c6259f165317685dc4c53e835aae3dfdbada183d71685dbbaf2e53c",
+      "source": "src/registry/r/pattove-main-select-react.json#design/css/select.css"
+    },
+    "react/select.jsx": {
+      "sha256": "cb1d42d208c32334d773311cb1e0841e3880e48f7f1666e94c6f7c335bf3ddef",
+      "source": "src/registry/r/pattove-main-select-react.json#design/react/select.jsx"
+    },
+    "css/badge.css": {
+      "sha256": "603214e942d854a93d85431a342f637e76227a26999ae385aa368c0a244fc057",
+      "source": "src/registry/r/pattove-main-badge-react.json#design/css/badge.css"
+    },
+    "react/badge.jsx": {
+      "sha256": "470726e4b37bdb2fd655d368d156b2a5a31f9db3884a2f00af2358e57227a11e",
+      "source": "src/registry/r/pattove-main-badge-react.json#design/react/badge.jsx"
+    },
+    "css/selection.css": {
+      "sha256": "15523ad752734b961b7b8f41d1b6cf6108b3729d7402e248f04fcef60bf15b78",
+      "source": "src/registry/r/pattove-main-switch-react.json#design/css/selection.css"
+    },
+    "react/switch.jsx": {
+      "sha256": "88e4a1d3054964d156f1cb0cc72ba9558e2aa516d1568f979e94e05adc9a7bdb",
+      "source": "src/registry/r/pattove-main-switch-react.json#design/react/switch.jsx"
+    },
+    "styles/main/container.css": {
+      "sha256": "0379d07f886e8637449fe23916100105b7631b6de5fdf3ff5f465dfb8bf0457b",
+      "source": "src/registry/r/pattove-main-dialog-react.json#design/styles/main/container.css"
+    },
+    "css/dialog.css": {
+      "sha256": "3c541b8542dae0c6d2adcb444d1960270842db35af278733f68eeab081f5555a",
+      "source": "src/registry/r/pattove-main-dialog-react.json#design/css/dialog.css"
+    },
+    "css/confirm-row.css": {
+      "sha256": "8b1f96c8fc53208eb22457e10af8413a75f6825b8d6cc2c400aeffe1f70b6466",
+      "source": "src/registry/r/pattove-main-dialog-react.json#design/css/confirm-row.css"
+    },
+    "react/dialog.jsx": {
+      "sha256": "0efe1ec1e32c2947c29ec1a219c03394074e92d03551eeb80a345e73b80ff968",
+      "source": "src/registry/r/pattove-main-dialog-react.json#design/react/dialog.jsx"
+    },
+    "styles/main/layer.css": {
+      "sha256": "b85b4af3757d59a9f082ea35ac4c7be440a0fb7061afa71273dd672a6e773488",
+      "source": "src/registry/r/pattove-main-bottom-nav-react.json#design/styles/main/layer.css"
+    },
+    "css/bottom-nav.css": {
+      "sha256": "038af15cac8b0ce1c6031dfd412060593ecbf674eec947930ecf9d665aed4c81",
+      "source": "src/registry/r/pattove-main-bottom-nav-react.json#design/css/bottom-nav.css"
+    },
+    "react/bottom-nav.jsx": {
+      "sha256": "90967e16f460b8c0b2f4531c83287a4bdd3088ed40b2807b76ac0420cbe52c3b",
+      "source": "src/registry/r/pattove-main-bottom-nav-react.json#design/react/bottom-nav.jsx"
+    },
+    "react/ui-icon-plus.jsx": {
+      "sha256": "e2fd395f900ad32046341efc45ada30e65b6da5bf0bd8a199127e3acd8699664",
+      "source": "src/registry/r/pattove-main-bottom-nav-react.json#design/react/ui-icon-plus.jsx"
+    },
+    "css/empty-state.css": {
+      "sha256": "72c7dd798ea629a855f4ffcb385960c2c653e6fbe58f678fd95d077ec6031709",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/css/empty-state.css"
+    },
+    "react/empty-state.jsx": {
+      "sha256": "06e410c963afe5678c178b963ebfbc7706979298ae510fcbb6cb45b7abcf0ff6",
+      "source": "src/registry/r/pattove-main-empty-state-react.json#design/react/empty-state.jsx"
+    },
+    "fonts/PretendardVariable.woff2": {
+      "sha256": "9599f12fd42fc0bce1cd50b47a0c022e108d7aa64dd0d1bb0ed44f3282d900b4",
+      "source": "assets/fonts/PretendardVariable.woff2"
+    },
+    "fonts/Pretendard-LICENSE.txt": {
+      "sha256": "82e9c8a4b203261f10ddba1296422d64914ff3d4b7bd8a12896d03f0f088d70a",
+      "source": "assets/fonts/Pretendard-LICENSE.txt"
+    },
+    "fonts/Outfit-Variable.woff2": {
+      "sha256": "44d32589876c45887f65a8055d6e15703919eb15c2252c1f92ef1af7b83b495e",
+      "source": "assets/fonts/Outfit-Variable.woff2"
+    },
+    "fonts/Outfit-OFL.txt": {
+      "sha256": "c676351bf8576b9aba743cd5eaa8c0e7ee0d51f805d720447b4df4ddb6a2e416",
+      "source": "assets/fonts/Outfit-OFL.txt"
+    },
+    "icons/ICO-445.webp": {
+      "sha256": "53c979e0d317530dd21c326df1b98aba6f2c8cdbac959380ab6abd4058a24da7",
+      "source": "assets/icons/illustrated/manifest.json#ICO-445",
+      "canonicalId": "ICO-445"
+    },
+    "icons/ICO-753.webp": {
+      "sha256": "0b8a1bbc038c639dbc9284e8723d76a546189af6aeeb5f175224356111bdf73c",
+      "source": "assets/icons/illustrated/manifest.json#ICO-753",
+      "canonicalId": "ICO-753"
+    },
+    "icons/ICO-453.webp": {
+      "sha256": "fef70e0a8dfe40264fb41915886aa10e1676cde38439b1eb43606b0ea684767a",
+      "source": "assets/icons/illustrated/manifest.json#ICO-453",
+      "canonicalId": "ICO-453"
+    },
+    "icons/ICO-454.webp": {
+      "sha256": "88ea3f4e83752a4280ec399c1cd5e018d77a4b2d26ec4bcb445af4cbbc0f6aa4",
+      "source": "assets/icons/illustrated/manifest.json#ICO-454",
+      "canonicalId": "ICO-454"
+    },
+    "icons/ICO-455.webp": {
+      "sha256": "834ddda63076d9a8f71358b36f3bfa55c614c6b7b1a5ae1fd257ab5473711940",
+      "source": "assets/icons/illustrated/manifest.json#ICO-455",
+      "canonicalId": "ICO-14"
+    },
+    "icons/ICO-280.webp": {
+      "sha256": "607da1eb2615a8f1dae811b8bec063b29c3dd35cdb5dbb6e09e3baf1b16f8bd9",
+      "source": "assets/icons/illustrated/manifest.json#ICO-280",
+      "canonicalId": "ICO-280"
+    },
+    "icons/ICO-319.webp": {
+      "sha256": "81665ff68f3ab503e976395e751f9a8a96a82713f003c14e556cf6a9ac20857f",
+      "source": "assets/icons/illustrated/manifest.json#ICO-319",
+      "canonicalId": "ICO-319"
+    },
+    "icons/lucide-scan-line.webp": {
+      "sha256": "4a04b47ae56119e6f68ffa4443c9205e6741c21ddb3b83320f95c304ecb54cd1",
+      "source": "assets/icons/illustrated/manifest.json#lucide:scan-line",
+      "canonicalId": "lucide:scan-line"
+    },
+    "icons/lucide-clock-3.webp": {
+      "sha256": "d572275a29592e02d879c11bf0fada238759d1930b1145101a94df795c91b444",
+      "source": "assets/icons/illustrated/manifest.json#lucide:clock-3",
+      "canonicalId": "lucide:clock-3"
+    },
+    "icons/ICO-122.webp": {
+      "sha256": "30799a6dec45653da36ad15e736a4274bc044743fec29d85ccf25b25665e9611",
+      "source": "assets/icons/illustrated/manifest.json#ICO-122",
+      "canonicalId": "ICO-122"
+    },
+    "icons/ICO-94.webp": {
+      "sha256": "5e84fad3385881d7a41d31f48cd0a44adae335bb25eff9d6714d83f6e8e9c94a",
+      "source": "assets/icons/illustrated/manifest.json#ICO-94",
+      "canonicalId": "ICO-94"
+    },
+    "icons/lucide-move-3d.webp": {
+      "sha256": "3902fdd41a80676d088437ed879008361ce95bfc7aadfcb9c0ee70dd66554d0b",
+      "source": "assets/icons/illustrated/manifest.json#lucide:move-3d",
+      "canonicalId": "lucide:move-3d"
+    },
+    "icons/ICO-831.webp": {
+      "sha256": "b18f28f68129abe751bfb4a8d35e24e44f9885bd42242d4a05418fb08189b0d7",
+      "source": "assets/icons/illustrated/manifest.json#ICO-831",
+      "canonicalId": "ICO-831"
+    },
+    "icons/ICO-595.webp": {
+      "sha256": "565d900b48529f558e9bd69f3ad21a4240bb236453f725f4752807a8a84e2eb1",
+      "source": "assets/icons/illustrated/manifest.json#ICO-595",
+      "canonicalId": "ICO-595"
+    },
+    "icons/lucide-key-round.webp": {
+      "sha256": "cd75be8d23d8f535e2410c861689576b1c289729bb304360677225cae590064f",
+      "source": "assets/icons/illustrated/manifest.json#lucide:key-round",
+      "canonicalId": "lucide:key-round"
+    },
+    "icons/ICO-531.webp": {
+      "sha256": "37e7415a8b9f7753c9fe47dd882aaf0317131e9d21b07a47a7199bd2d78007d6",
+      "source": "assets/icons/illustrated/manifest.json#ICO-531",
+      "canonicalId": "ICO-531"
+    },
+    "icons/ICO-395.webp": {
+      "sha256": "9601eb4d97361d10bdd0fbd621d0e90fd2fc33b9ca3dff32a7423ea6659745c6",
+      "source": "assets/icons/illustrated/manifest.json#ICO-395",
+      "canonicalId": "ICO-395"
+    },
+    "icons/ICO-25.webp": {
+      "sha256": "5387d48a5f05127aa35a79c346b0daec20b3ecce3fafd8f29cc4126905196d1e",
+      "source": "assets/icons/illustrated/manifest.json#ICO-25",
+      "canonicalId": "ICO-25"
+    },
+    "icons/ICO-41.webp": {
+      "sha256": "2c8ef3f27db921821cf2bb91bf9496f0a52b1d1198bf319c3accaf0b6d26f262",
+      "source": "assets/icons/illustrated/manifest.json#ICO-41",
+      "canonicalId": "ICO-41"
+    },
+    "icons/ICO-72.webp": {
+      "sha256": "07a4de290887ec120a1035f322a3fb915399f33435b4acf00e8da74e821fc651",
+      "source": "assets/icons/illustrated/manifest.json#ICO-72",
+      "canonicalId": "ICO-72"
+    },
+    "icons/ICO-40.webp": {
+      "sha256": "9e4b3adaf77c59998612f16b993fc77494795e2cd85be145cfcf0141bac5df4e",
+      "source": "assets/icons/illustrated/manifest.json#ICO-40",
+      "canonicalId": "ICO-40"
+    },
+    "icons/lucide-settings-2.webp": {
+      "sha256": "deae3e5d046e7e4a68cd6e695e04cd878a4a13ba109ec669f889c1789854fb5a",
+      "source": "assets/icons/illustrated/manifest.json#lucide:settings-2",
+      "canonicalId": "lucide:settings-2"
+    },
+    "icons/ICO-96.webp": {
+      "sha256": "3fa88a3753519b4b1d0592c3b2a0c60725ca5c3676afdde994e2e3a3717f10c7",
+      "source": "assets/icons/illustrated/manifest.json#ICO-96",
+      "canonicalId": "ICO-96"
+    },
+    "icons/ICO-349.webp": {
+      "sha256": "e70324069e996735f0af092c8076425d10fd7499403ab4c6c320c9a80ef85fac",
+      "source": "assets/icons/illustrated/manifest.json#ICO-349",
+      "canonicalId": "ICO-349"
+    },
+    "icons/ICO-01.webp": {
+      "sha256": "9285d99b6f0d596e60b2ebac1efee7cbcb55af6868ffeaf84319d604658ebbe7",
+      "source": "assets/icons/illustrated/manifest.json#ICO-01",
+      "canonicalId": "ICO-01"
+    },
+    "icons/ICO-263.webp": {
+      "sha256": "ffbae552bc8606da2ee4e9a4dcba6e212a7cd0933492f0c89f7383b6668bea1a",
+      "source": "assets/icons/illustrated/manifest.json#ICO-263",
+      "canonicalId": "ICO-263"
+    },
+    "icons/ICO-95.webp": {
+      "sha256": "b253f769fc3380331b18e8a6f409a793b64ad21e749ae03ae2bd55b5fa7a1827",
+      "source": "assets/icons/illustrated/manifest.json#ICO-95",
+      "canonicalId": "ICO-82"
+    },
+    "icons/ICO-203.webp": {
+      "sha256": "fb68dcd109522d71fccebb5d4d3ce5d48371a137b9481866bbe0e8aa168af5b5",
+      "source": "assets/icons/illustrated/manifest.json#ICO-203",
+      "canonicalId": "ICO-203"
+    },
+    "icons/ICO-204.webp": {
+      "sha256": "64fb5926c7ebdf4e5a6c5447ddc904bbc1cfc737a532a831186d2d433b40742a",
+      "source": "assets/icons/illustrated/manifest.json#ICO-204",
+      "canonicalId": "ICO-204"
+    },
+    "icons/ICO-326.webp": {
+      "sha256": "4b9f1dfc7121982af3eac10f6dd182e8b3f7e3dea499b071237cac5b96b05cca",
+      "source": "assets/icons/illustrated/manifest.json#ICO-326",
+      "canonicalId": "ICO-326"
+    },
+    "icons/ICO-817.webp": {
+      "sha256": "3b45cb3c17d04717b4e7d9c2e134c316c36fe7e7d4b06976bb7058992a774a74",
+      "source": "assets/icons/illustrated/manifest.json#ICO-817",
+      "canonicalId": "ICO-817"
+    },
+    "icons/ICO-699.webp": {
+      "sha256": "21821dba579f0e51792dd7d7ac6865090ee5c889216f5b1de51af18ac240a9c8",
+      "source": "assets/icons/illustrated/manifest.json#ICO-699",
+      "canonicalId": "ICO-699"
+    },
+    "icons/ICO-955.webp": {
+      "sha256": "850f46ac8b20543f43fd27d4cf23f349e132bd8d79be512ed4d9011bc3f4c73f",
+      "source": "assets/icons/illustrated/manifest.json#ICO-955",
+      "canonicalId": "ICO-955"
+    },
+    "icons/ICO-427.webp": {
+      "sha256": "cedd8d0d8790ee3bcd77d3a97ad81d3d36b67c98d6e2077206fc0e409289521c",
+      "source": "assets/icons/illustrated/manifest.json#ICO-427",
+      "canonicalId": "ICO-410"
+    },
+    "icons/lucide-gamepad-2.webp": {
+      "sha256": "c1d9daa6949708114424cb7dc11c74e7cd00d92b16f0bd61c70cebede3ce2622",
+      "source": "assets/icons/illustrated/manifest.json#lucide:gamepad-2",
+      "canonicalId": "lucide:gamepad-2"
+    },
+    "icons/ICO-592.webp": {
+      "sha256": "eb3ffa41424c05a04b50054d4fe0469a178ef9b92d38b62f0d6b7ee89c73e7a2",
+      "source": "assets/icons/illustrated/manifest.json#ICO-592",
+      "canonicalId": "ICO-592"
+    },
+    "icons/lucide-notebook-pen.webp": {
+      "sha256": "cca99db452b87eeafe8d454020f9454695f88574ba6e228cc9f460f3fb40a8bf",
+      "source": "assets/icons/illustrated/manifest.json#lucide:notebook-pen",
+      "canonicalId": "lucide:notebook-pen"
+    },
+    "icons/ICO-62.webp": {
+      "sha256": "3b35f226a40bcac3fc3aa11af198be6890a6cbe08bcf7774b3a8147d818b9078",
+      "source": "assets/icons/illustrated/manifest.json#ICO-62",
+      "canonicalId": "ICO-62"
+    },
+    "icons/ICO-49.webp": {
+      "sha256": "a3e11a8358dec359313dca8112f9837c3c027e5a8c0a9b86cb416f71d9012a1d",
+      "source": "assets/icons/illustrated/manifest.json#ICO-49",
+      "canonicalId": "ICO-84"
+    },
+    "icons/ICO-645.webp": {
+      "sha256": "363a1c98906985df1ca3f469f7c606de0abea370ca94d43fe829c1c45962f5fb",
+      "source": "assets/icons/illustrated/manifest.json#ICO-645",
+      "canonicalId": "ICO-645"
+    },
+    "icons/ICO-153.webp": {
+      "sha256": "45ba6c19584a161765d52b7cfc6c06af847973a6755c510d977d4e92d248d6d2",
+      "source": "assets/icons/illustrated/manifest.json#ICO-153",
+      "canonicalId": "ICO-153"
+    },
+    "icons/ICO-08.webp": {
+      "sha256": "d527dcbd02904f21cae8dffa797212bc81eef55af4e152be41b5f3cb1e05b360",
+      "source": "assets/icons/illustrated/manifest.json#ICO-08",
+      "canonicalId": "ICO-08"
+    },
+    "icons/ICO-733.webp": {
+      "sha256": "2d2ea1fbde5b2b05e3c22529cda611983715e275cd72b6821a1afdfc3088bd5c",
+      "source": "assets/icons/illustrated/manifest.json#ICO-733",
+      "canonicalId": "ICO-733"
+    },
+    "icons/lucide-image-off.webp": {
+      "sha256": "1c995c938ec0957fb6a0728616f31cfa2b11cc749ec52c4ea3fe3fa0c89263cb",
+      "source": "assets/icons/illustrated/manifest.json#lucide:image-off",
+      "canonicalId": "lucide:image-off"
+    },
+    "icons/lucide-lock-keyhole.webp": {
+      "sha256": "ca5f5e6522f1056813628f02a673d66cfde0b310e4f65276a754174e0368c315",
+      "source": "assets/icons/illustrated/manifest.json#lucide:lock-keyhole",
+      "canonicalId": "lucide:lock-keyhole"
+    },
+    "icons/lucide-loader-circle.webp": {
+      "sha256": "dada474c19b8043e28986f9d1eb3d6596eb093eb41efa03924a069b453f4ec5a",
+      "source": "assets/icons/illustrated/manifest.json#lucide:loader-circle",
+      "canonicalId": "lucide:loader-circle"
+    },
+    "icons/ICO-804.webp": {
+      "sha256": "fe913b90bcd0d0c96e90065762c9a8f8621444a658eb852777b34c65aaf94c33",
+      "source": "assets/icons/illustrated/manifest.json#ICO-804",
+      "canonicalId": "ICO-292"
+    },
+    "icons/mapping.json": {
+      "sha256": "c25ace6d79b7f08a78cbc6025fa302966916277b182e5058a228181f3a23dcc5",
+      "source": "selected icon IDs from Pattove illustration catalog"
+    }
   }
 }

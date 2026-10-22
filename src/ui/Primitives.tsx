@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode, type ButtonHTMLAttributes, type MouseEventHandler } from "react";
-import { X, PackageOpen, ImageOff } from "lucide-react";
+import { X, PackageOpen, ImageOff } from "./Icons";
+import { IconButton as DesignIconButton } from "../design-system/components";
 export function IconButton({
   label,
   children,
@@ -13,17 +14,18 @@ export function IconButton({
   onClick: MouseEventHandler<HTMLButtonElement>;
 }) {
   return (
-    <button
+    <DesignIconButton
       {...rest}
       className={"ui-icon-button icon-button " + className}
       type="button"
-      aria-label={label}
+      label={label}
       title={label}
+      variant="outline"
       onClick={onClick}
       disabled={disabled}
     >
       {children}
-    </button>
+    </DesignIconButton>
   );
 }
 export function Empty({ children }: { children: ReactNode }) {
@@ -59,7 +61,7 @@ export function Modal({
   return (
     <dialog
       ref={ref}
-      className="ui-dialog modal"
+      className="ds-dialog modal"
       onCancel={(e) => {
         e.preventDefault();
         onClose();

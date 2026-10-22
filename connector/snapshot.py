@@ -100,7 +100,7 @@ def collect(root: Path, runtime: Path):
         status = auto.get('accounts', {}).get(str(n), {})
         counts = {r['state']: r['count'] for r in stages if r['account'] == item['account']}
         accounts.append({
-            'id': str(n), 'number': n, 'name': item['name'], 'style': item['style'],
+            'id': str(n), 'number': n, 'name': f'{n}번 계정', 'style': item['style'],
             'account': item['account'], 'email': item.get('email'), 'browser': item.get('browser'),
             'bound': item['bound'], 'ready': eligible_counts.get(item['account'],0), 'target': item['target'],
             'phases': item['phases'], 'counts': counts, 'inProgress': item['in_progress'],
@@ -118,6 +118,8 @@ def collect(root: Path, runtime: Path):
         file = {'generation': 'status.json', 'review': 'review-status.json', 'metadata': 'metadata-status.json'}[name]
         path = runtime / 'production' / file
         lane_data[name] = {k: value.get(k) for k in ('status', 'phase', 'number', 'started_at', 'checked_at')}
+        lane_data[name]['nextAt'] = value.get('cooldown_until') or value.get('next_at')
+        lane_data[name]['message'] = str(value.get('message') or '')[:1000]
         lane_data[name]['observedAt'] = datetime.fromtimestamp(path.stat().st_mtime, timezone.utc).isoformat() if path.exists() else None
     asset_files = {a['id']: a.pop('file') for a in assets}
     by_account = {a['account']: a['id'] for a in accounts}

@@ -1,0 +1,28 @@
+/* One markup, five shapes. Selection never rests on color alone: each shape adds a mark, a tile, a pill, a press or weight. */
+/* Floating shapes declare --ds-bottom-nav-offset so a screen frame can keep them off the edges. */
+.ds .ds-bottom-nav { position:relative; isolation:isolate; display:flex; justify-content:space-around; align-items:center; gap:var(--p-space-2xs); padding:var(--p-space-xs); background:var(--p-surface); border-top:var(--p-border-width) solid var(--p-line); }
+.ds .ds-bottom-nav > :not(.ds-bottom-nav-create) { position:relative; display:flex; flex:1; min-width:var(--p-control-size-sm); min-height:var(--p-control-size-xl); flex-direction:column; justify-content:center; align-items:center; gap:var(--p-space-2xs); padding:var(--p-space-xs); border:0; color:var(--p-muted); background:transparent; font-size:var(--p-text-sm); text-decoration:none; }
+.ds .ds-bottom-nav > :is([aria-pressed="true"],[aria-current="page"]) { color:var(--p-ink); font-weight:var(--p-weight-extrabold); }
+.ds .ds-bottom-nav > :not(.ds-bottom-nav-create)::before,.ds .ds-bottom-nav > :not(.ds-bottom-nav-create)::after { content:''; position:absolute; pointer-events:none; }
+.ds .ds-bottom-nav > .ds-bottom-nav-create { display:grid; place-items:center; flex:none; width:var(--p-control-size-md); height:var(--p-control-size-md); padding:0; border:0; border-radius:var(--p-radius-circle); color:var(--p-on-accent); background:var(--p-accent); box-shadow:var(--p-raised); }
+.ds .ds-bottom-nav > .ds-bottom-nav-create .ui-icon { width:var(--p-icon-lg); height:var(--p-icon-lg); }
+/* 05 line: top bar (also the look without a variant) */
+.ds .ds-bottom-nav:is(:not([data-variant]),[data-variant="line"]) > :is([aria-pressed="true"],[aria-current="page"])::before { top:calc(var(--p-space-xs) * -1); left:calc(100% / 6); right:calc(100% / 6); height:var(--p-size-2xs); border-radius:0 0 var(--p-radius-sm) var(--p-radius-sm); background:var(--p-accent); }
+/* 01 minimal: flat, dot under the label */
+.ds .ds-bottom-nav[data-variant="minimal"] { background:var(--p-bg); border-top-color:transparent; }
+.ds .ds-bottom-nav[data-variant="minimal"] > :is([aria-pressed="true"],[aria-current="page"])::after { bottom:var(--p-space-3xs); width:var(--p-size-2xs); height:var(--p-size-2xs); border-radius:var(--p-radius-circle); background:var(--p-accent); }
+/* 02 glass: translucent edge bar over the screen, light tile on the chosen item */
+.ds .ds-bottom-nav[data-variant="glass"] { background:var(--p-high); border-top-color:var(--p-line); }
+@supports(backdrop-filter:blur(0)) { .ds .ds-bottom-nav[data-variant="glass"] { background:var(--p-glass-veil); backdrop-filter:var(--p-blur-glass); } }
+.ds .ds-bottom-nav[data-variant="glass"] > :not(.ds-bottom-nav-create) { border-radius:var(--p-radius-xl); }
+.ds .ds-bottom-nav[data-variant="glass"] > :is([aria-pressed="true"],[aria-current="page"]) { background:var(--p-high-veil); box-shadow:inset 0 0 0 var(--p-border-width) var(--p-line); }
+/* 03 float: floating capsule, create button inside, soft disc behind the chosen icon */
+.ds .ds-bottom-nav[data-variant="float"] { --ds-bottom-nav-offset:var(--p-space-sm); padding:var(--p-space-xs) var(--p-space-xs); border:var(--p-border-width) solid var(--p-line); border-radius:var(--p-radius-full); background:var(--p-high); box-shadow:var(--p-shadow); }
+.ds .ds-bottom-nav[data-variant="float"] > :not(.ds-bottom-nav-create) { min-height:var(--p-control-size-lg); }
+.ds .ds-bottom-nav[data-variant="float"] > :is([aria-pressed="true"],[aria-current="page"])::before { top:var(--p-space-2xs); left:50%; width:calc(var(--p-space-unit) * 9); height:var(--p-size-xl); margin-left:calc((var(--p-space-md) + var(--p-space-3xs)) * -1); border-radius:var(--p-radius-xl); background:var(--p-soft); z-index:var(--p-layer-below); }
+/* 04 pill: only the chosen item shows its name, inside a soft pill */
+.ds .ds-bottom-nav[data-variant="pill"] { padding:var(--p-space-xs) var(--p-space-xs); background:var(--p-bg); }
+.ds .ds-bottom-nav[data-variant="pill"] > :not(.ds-bottom-nav-create) { min-height:var(--p-control-size-sm); flex-direction:row; gap:var(--p-space-xs); border-radius:var(--p-radius-full); }
+.ds .ds-bottom-nav[data-variant="pill"] > :not([aria-pressed="true"],[aria-current="page"]) > span { position:absolute; width:var(--p-size-hairline); height:var(--p-size-hairline); overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.ds .ds-bottom-nav[data-variant="pill"] > :is([aria-pressed="true"],[aria-current="page"]) { flex:1.8; padding:var(--p-space-xs) var(--p-space-md); background:var(--p-soft); font-size:var(--p-text-sm); }
+@media(prefers-reduced-transparency:reduce) { .ds .ds-bottom-nav[data-variant="glass"] { background:var(--p-high); backdrop-filter:none; } }
