@@ -16,3 +16,12 @@
 두 animated GLB의 전체 움직임 범위를 기준으로 크기와 배치를 정한다. 움직이는 노드는 정적 병합·인스턴싱에서 제외하고 `AnimationMixer`로 재생한다. 렌더는 최대 30fps, 그림자 갱신은 약 120ms 간격이며 화면 재생성 시 mixer·GPU 자원을 해제한다. 파일이나 필요한 clip이 없으면 기존 다시 받기 버튼으로 복구한다.
 
 검증 명령: `BIZ_TEST_OWNER_CYCLE_FIXTURE=synthetic BIZ_TEST_ORIGIN=http://127.0.0.1:4363 npx playwright test tests/industrial-motion.e2e.ts tests/owner-motion.e2e.ts`. 데이터 쓰기는 격리된 메모리 DB에서만 수행한다. Chromium·WebKit의 실제 관절 변위, 정지, 복귀, 재시도와 다섯 화면 크기를 검사한다. 결과는 `artifacts/animated-industry/`에 보관한다. 실기기 발열·배터리 검증은 별도다.
+
+## 2026-10-23 배포 확인
+
+- 제품 변경: `380acd8`. Cloudflare Worker 버전: `3dbb1c06-7988-441e-9cea-7d3679883c6e`.
+- 빌드: `index-DQJe2mKo.js`, `World-BnGNysG6.js`. 검사한 dist를 다시 빌드하지 않고 배포했다.
+- Node/API 검사 72개 통과. Chromium·WebKit 각각 18개 통과, 개인 원본 fixture 전용 검사 1개씩 조건부 제외. 신규 모션 검사는 실제 clip 시간·관절 pose 변화와 정지, 숨긴 탭의 복귀, 에셋 재시도, 다섯 화면 크기에서의 재배치를 포함한다.
+- `https://biz.bluekite.co.kr`에서 두 브라우저 × 360/1440px 총 4개 화면 검사 통과. 7개 모델 로드, 13계정 표시, JS 오류 0, 업무 변경 요청 0. 두 신규 GLB의 배포 바이트와 로컬 파일 일치 확인.
+- 확인 시점에는 생산 대기·제작 검수 가동으로 수신되어 프레스 정지·로봇팔 재생이 일치했다. 이는 당시 관측이며 상시 가동을 보증하지 않는다.
+- 세부 증거: `artifacts/animated-industry/{chromium,webkit}-release.json`, `candidate.json`, `live.json`, 화면별 `*-moving-a.png`·`*-moving-b.png`, `live-*.png`. 실기기 성능과 장기간 사용 평가는 아직 별도 검증 대상이다.
