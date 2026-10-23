@@ -96,3 +96,22 @@
 제작 코드와 원산지 기록은 `scripts/pack-workshop-assets.mjs`, `public/assets/workshop/SOURCE.txt`다. 흰 종이·따뜻한 아이보리·짙은 청록 테두리·코랄 봉인·노란 금속을 재료별로 나누었으며 모형 전체를 한 색으로 바꾸지 않는다. 제품에 다른 제작자의 작품·상표·홍보 이미지를 포함하지 않는다.
 
 전체 **4개 중 4개**, 총 **512,100 bytes / 5,220 triangles**. +Y 상향·XZ 중심·Y 바닥 0, 외부 버퍼·이미지 의존 0. 모델별 크기와 앞면은 `public/assets/workshop/manifest.json`에 있다. `node scripts/pack-workshop-assets.preview.mjs`로 headless Chromium에서 4/4 GLTFLoader 로드·접지, JavaScript 오류 0을 확인했다. 큰 렌더와 **48px 축소본**은 ignored `artifacts/workshop-assets/all-models.png`, 측정은 `render-audit.json`에 있다. 실제 운영 씬에서 계정별 그림을 연결하고 비어 있을 때 숨기는 동작은 World 통합 검증에서 확인한다.
+## 2026-10 가동 상태를 보여 주는 산업 애니메이션
+
+| 후보 | 컨셉·커버리지·통일성 | 라이선스·판정 |
+|---|---|---|
+| 일본 [3D屋さん](https://3dyasan.com/) | 기존 창고 프리뷰를 직접 확인. 공간·물류 소품은 맞지만 생산 가동을 나타내는 내장 모션을 확인하지 못함 | 공식 `/about/` 404. 원본 GLB의 웹 배포 권한을 확정하지 못해 채택하지 않음 |
+| [Quaternius Animated Robot](https://quaternius.com/packs/animatedrobot.html) | 공식 프리뷰 직접 확인. 의인화된 노란 캐릭터 1종으로, 현재 작업소의 프레스·이송·분리관절 팔과 역할·비례가 다름 | 공식 CC0이나 실제 생산 설비를 보여 주는 이번 범위에는 채택하지 않음 |
+| [Kenney Factory Kit 3.0](https://kenney.nl/assets/factory-kit) | 기존 주 팩과 같은 재질·비례. 원본 143 GLB 전수 검사: 내장 애니메이션 모델 11종, clip 33개. 프레스 왕복과 분리관절 팔이 생산 작업에 직접 대응 | 공식 CC0 1.0. 상업·수정·웹 원본 파일 배포 가능. **기존 주 팩을 재사용**, 팔레트 내장·청록 변경과 작업용 clip 추가 |
+
+| 제품 파일 | 출처·권리 | 실제 동작·가공 |
+|---|---|---|
+| `public/assets/animated-industry/piston-square.glb` | Kenney Factory Kit 3.0 · CC0 1.0 | **원본 내장** `toggle-on` .2초, `toggle-off` .2초, `toggle` .5초, 각 6 tracks. 37,312 B·180 triangles. `toggle` 재생률을 낮춰 생산 왕복에 사용. 정지 높이 1, 최대 높이 2 |
+| `public/assets/animated-industry/robot-arm-pick.glb` | 같은 팩 `robot-arm-a.glb` geometry · CC0 1.0 | 원본 clip은 0개. 원본 관절·집게를 보존하고 **프로젝트가 추가한** `pick-and-place` 3.6초·6 tracks를 파일에 내장. 집기·들기·선회·내리기·놓기·복귀. 61,268 B·472 triangles |
+| `public/assets/animated-industry/Kenney-LICENSE.txt`, `manifest.json` | 원본 `License.txt` 보존, 출처 표기는 선택 | 모델 파일 2개 합계 **98,580 B·652 triangles**. 필요한 팔레트를 GLB에 내장해 외부 텍스처 의존 0. 원본 conveyor 계열에는 내장 clip 없음 |
+
+원본 ZIP: [공식 배포 파일](https://kenney.nl/media/pages/assets/factory-kit/edaac9d4f6-1777639602/kenney_factory-kit_3.0.zip). 기존 `asset_fetch.py` 캐시를 다시 확인해 사용했다. 원본 ZIP·후보 홍보 이미지·검토용 프리뷰는 제품 파일에 넣지 않는다. 새 형상·캐릭터를 생성하지 않았으며, 모델 저작자는 Kenney이고 추가 관절 키프레임은 본 프로젝트 제작이다.
+
+재현: `python3 scripts/pack-animated-industry.py`. 검증: `node scripts/pack-animated-industry.preview.mjs`의 GLTFLoader·AnimationMixer로 **2개 중 2개**, clip **4개 중 4개**의 실제 변위·정지 안정성 확인. 30회 실제 update도 실행했고 요청 실패·JS 오류 0. `artifacts/animated-industry/asset-motion-contact-sheet.png`에 다섯 시점의 정지·확장·관절 이동을 직접 렌더했다. 상세 수치와 source 143종 전수 결과는 `asset-render-audit.json`, `asset-source-audit.json`에 있다. 실제 업무 상태·접근성·최종 장면 배치는 통합 구현에서 검증한다.
+
+최종 적용: `src/world/industrialMotion.ts`가 두 clip을 보존·재생하고 `processFacilities.ts`의 열린 프레스/검수 작업대에 배치한다. 원본 중립 렌더와 최종 장면의 프레임 쌍을 직접 대조해 왕복축·관절 동작과 루프, 프레스 구조물 사이의 간격을 확인했다. 360×640, 390×844, 768×1024, 1440×900, 844×390의 Chromium·WebKit에서 재배치 후에도 실제 관절 변화가 유지된다. 작은 전경에서는 가동 여부를 보조하고, 정확한 계정 상태와 시각은 기존 명판이 담당한다. 13계정 동시 표시와 상태 문구를 보존했다. 무료·CC0 여부를 시각 품질 판정 근거로 쓰지 않았으며, 이번 채택 범위는 현재 작업소 스타일의 생산·제작 검수 설비 두 종이다. 움직임 줄이기·정지·오류·오래된 관측에서 재생하지 않는 동작까지 통합 검사했다. 외부 심사 진행률을 표현하는 용도로는 사용하지 않는다.

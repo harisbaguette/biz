@@ -1,0 +1,61 @@
+{
+  "pack": "Kenney Factory Kit 3.0",
+  "license": "CC0-1.0",
+  "source": "https://kenney.nl/assets/factory-kit",
+  "originalModelCount": 143,
+  "models": [
+    {
+      "id": "piston-square",
+      "url": "/assets/animated-industry/piston-square.glb",
+      "role": "왕복 생산 프레스",
+      "size": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "bytes": 37312,
+      "triangles": 180,
+      "nodes": [
+        "piston-square",
+        "top",
+        "arm",
+        "piston-square-grounded"
+      ],
+      "animations": [
+        "toggle-on",
+        "toggle-off",
+        "toggle"
+      ],
+      "clipOrigin": "Kenney original"
+    },
+    {
+      "id": "robot-arm-pick",
+      "url": "/assets/animated-industry/robot-arm-pick.glb",
+      "role": "집기·올리기·이동·놓기 관절팔",
+      "size": [
+        1.0,
+        3.2,
+        1.0
+      ],
+      "bytes": 61268,
+      "triangles": 472,
+      "nodes": [
+        "robot-arm-a",
+        "element-a",
+        "element-b",
+        "element-c",
+        "element-d",
+        "element-e",
+        "element-f",
+        "claw-a",
+        "claw-b",
+        "robot-arm-pick-grounded"
+      ],
+      "animations": [
+        "pick-and-place"
+      ],
+      "clipOrigin": "project-added"
+    }
+  ],
+  "note": "piston source clips preserved; robot source has no animation and project adds pick-and-place. No conveyor source clips exist."
+}

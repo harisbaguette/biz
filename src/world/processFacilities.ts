@@ -63,24 +63,43 @@ export function buildAccountStation(group:THREE.Group,tools:WorkshopTools):Stati
   for(const x of [-.32,.32])for(const z of [-.25,.25]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.08,9),new THREE.MeshStandardMaterial({color:industry.dark,roughness:.7}));wheel.rotation.z=Math.PI/2;wheel.position.set(x,.12,z);cart.add(wheel);}
   return {stock,review,archive,archiveStorage,clock:clockPlace.object,gate,fault,cart,artwork};
 }
-export interface SharedParts { active:THREE.Object3D[];months:THREE.Mesh[];monthSeals:THREE.Mesh[]; }
+export interface SharedParts {
+  active:THREE.Object3D[];months:THREE.Mesh[];monthSeals:THREE.Mesh[];
+  rollers?:THREE.Group[];
+  lamps?:{process:'generation'|'review';material:THREE.MeshStandardMaterial}[];
+}
 export function buildPrintPress(group:THREE.Group,tools:WorkshopTools):SharedParts {
-  const {box,model,dynamic}=tools,active:THREE.Object3D[]=[];
-  // Paper hopper, curved printer body, a dark output slot and an exposed roller bed.
+  const {box,model,dynamic}=tools,active:THREE.Object3D[]=[],rollers:THREE.Group[]=[],lamps:NonNullable<SharedParts['lamps']>=[];
+  // An open stamping press and a separate articulated quality-inspection bay.
+  // The animation envelope fits inside each bay, including the fully extended piston.
   box(13.5,.18,6.2,industry.white,-.6,.28,0,group);
-  box(7.2,1.85,3.3,industry.white,-2.8,1.35,-.45,group);
-  box(.38,1.94,3.25,industry.danger,-6.25,1.38,-.45,group);box(.38,1.94,3.25,industry.danger,.65,1.38,-.45,group);
-  box(5.7,.18,2.5,industry.blue,-2.8,2.36,-.6,group);box(4.7,.10,1.65,industry.dark,-2.8,2.52,-.55,group);
-  box(4.8,.42,.12,industry.dark,-2.8,1.25,1.25,group);box(5.1,.10,.24,industry.orange,-2.8,1.0,1.35,group);
-  const hopper=new THREE.Group();hopper.position.set(-3.4,2.56,-.65);group.add(hopper);model('print-stack',hopper,2.5,1.7,.4);active.push(hopper);
-  const output=new THREE.Group();output.position.set(-2.8,.45,2.5);group.add(output);model('conveyor-long',output,1.7,3.8,.65);
-  const scan=new THREE.Group();scan.position.set(3.6,.47,.1);group.add(scan);model('scanner-high',scan,2.5,3.3,2.7);
-  const cross=new THREE.Group();cross.position.set(2.2,.43,.8);cross.rotation.y=Math.PI/2;group.add(cross);model('conveyor-long',cross,1.3,4.2,.65);
-  for(const [i,color]of [industry.mint,industry.danger,industry.orange].entries()){
-    const roller=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,1.5,16),new THREE.MeshStandardMaterial({color,roughness:.3,metalness:.2}));roller.rotation.z=Math.PI/2;roller.position.set(1.3+i*1.25,1.4,-.6);group.add(roller);
+  box(7.2,.6,3.3,industry.blue,-2.8,.73,-.45,group);
+  for(const x of [-6.05,.45]){
+    box(.38,2.9,2.7,industry.danger,x,1.86,-.45,group);
+    box(.46,.18,2.85,industry.orange,x,3.36,-.45,group);
   }
-  const print=dynamic(new THREE.Group());print.position.set(-2.8,1.12,2.15);group.add(print);model('print-stack',print,1.65,1.2,.25);active.push(print);
-  return {active,months:[],monthSeals:[]};
+  box(6.9,.26,.65,industry.blue,-2.8,3.34,-1.7,group);
+  box(4.7,.12,2.4,industry.dark,-2.8,1.08,-.45,group);
+  const press=new THREE.Group();press.position.set(-3.4,1.16,-.6);group.add(press);
+  model('piston-square',press,1.1,1.1,2.2);
+  const hopper=new THREE.Group();hopper.position.set(-1.2,1.17,-.65);group.add(hopper);model('print-stack',hopper,1.4,1.5,.4);active.push(hopper);
+  box(4.8,.42,.12,industry.dark,-2.8,.83,1.25,group);box(5.1,.10,.24,industry.orange,-2.8,.58,1.35,group);
+  const output=new THREE.Group();output.position.set(-2.8,.45,2.5);group.add(output);model('conveyor-long',output,1.7,3.8,.65);
+  // The arm's sweep is on the right of the press; it never sweeps through the housing.
+  box(3.2,.24,3.2,industry.blue,3.8,.48,-.8,group);
+  const arm=new THREE.Group();arm.position.set(3.8,.62,-.8);group.add(arm);model('robot-arm-pick',arm,3.0,3.0,3.2);
+  const cross=new THREE.Group();cross.position.set(2.65,.43,1.5);cross.rotation.y=Math.PI/2;group.add(cross);model('conveyor-long',cross,1.3,4.2,.65);
+  for(let i=0;i<3;i++){
+    const axle=dynamic(new THREE.Group());axle.position.set(-2.8,1.06,1.9+i*.5);group.add(axle);
+    const roller=new THREE.Mesh(new THREE.CylinderGeometry(.13,.13,1.45,16),new THREE.MeshStandardMaterial({color:industry.steel,roughness:.3,metalness:.2}));roller.rotation.z=Math.PI/2;axle.add(roller);
+    box(1.4,.035,.04,industry.orange,0,.135,0,axle);rollers.push(axle);
+  }
+  for(const [process,x]of [['generation',-5.8],['review',5.05]]as const){
+    box(.16,.7,.16,industry.dark,x,1.0,1.0,group);
+    const lamp=dynamic(box(.36,.30,.36,industry.unknown,x,1.52,1.0,group));lamps.push({process,material:lamp.material as THREE.MeshStandardMaterial});
+  }
+  const print=dynamic(new THREE.Group());print.position.set(-2.8,1.24,2.15);group.add(print);model('print-stack',print,1.65,1.2,.25);active.push(print);
+  return {active,rollers,lamps,months:[],monthSeals:[]};
 }
 /** The spare work bays hold a compact ledger and the submission clock, not remote warehouses. */
 export function buildLedger(group:THREE.Group,tools:WorkshopTools):SharedParts {
