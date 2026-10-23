@@ -1,0 +1,77 @@
+{
+  "source": "BLUEKITE WORKS original",
+  "license": "프로젝트 자체 제작",
+  "axes": "+Y up, XZ centered, Y grounded",
+  "models": [
+    {
+      "id": "print-stack",
+      "url": "/assets/workshop/print-stack.glb",
+      "role": "출고 대기 작품 프린트",
+      "face": "+Y",
+      "size": [
+        1.80001,
+        0.33076,
+        1.413
+      ],
+      "bytes": 100812,
+      "triangles": 1054,
+      "meshes": 11,
+      "artworkMesh": "artwork-surface",
+      "artworkSize": [
+        1.43,
+        1.04
+      ]
+    },
+    {
+      "id": "submission-folio",
+      "url": "/assets/workshop/submission-folio.glb",
+      "role": "봉인된 제출 작품 묶음",
+      "face": "+Y",
+      "size": [
+        1.73262,
+        0.249,
+        1.38293
+      ],
+      "bytes": 82796,
+      "triangles": 844,
+      "meshes": 9,
+      "artworkMesh": null,
+      "artworkSize": null
+    },
+    {
+      "id": "review-clock",
+      "url": "/assets/workshop/review-clock.glb",
+      "role": "심사 대기 시계",
+      "face": "+Z",
+      "size": [
+        0.98,
+        1.19692,
+        0.4665
+      ],
+      "bytes": 225120,
+      "triangles": 2348,
+      "meshes": 21,
+      "artworkMesh": null,
+      "artworkSize": null
+    },
+    {
+      "id": "gallery-frame",
+      "url": "/assets/workshop/gallery-frame.glb",
+      "role": "공개된 작품 전시 프레임",
+      "face": "+Z",
+      "size": [
+        1.38,
+        1.61998,
+        0.60349
+      ],
+      "bytes": 103372,
+      "triangles": 974,
+      "meshes": 10,
+      "artworkMesh": "artwork-surface",
+      "artworkSize": [
+        0.91,
+        1.1
+      ]
+    }
+  ]
+}

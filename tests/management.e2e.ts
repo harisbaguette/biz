@@ -4,9 +4,10 @@ import { currentAssets } from "../src/operations-state";
 
 test.beforeAll(async () => { await baselineWorld(); });
 async function management(page: Page) {
-  await page.getByRole("button", { name: "운영실", exact: true }).click();
-  await page.getByRole("button", { name: "운영 계획·보고", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "운영 계획·보고" })).toBeVisible();
+  await page.getByRole("button", { name: "상태 수신", exact: true }).click();
+  await expect(page.locator(".panel-automation")).toBeVisible();
+  await page.getByRole("button", { name: "사업 계획·보고", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "사업 계획·보고" })).toBeVisible();
 }
 
 test("사업별 계획과 보고를 저장·수정하고 다시 열어도 내용과 상태를 보존한다", async ({ page }) => {
@@ -59,7 +60,10 @@ test("미완료 확인을 완료로 표시하지 않고 사업 운영 이력과 
   await page.locator(".account-records summary").click();
   await expect(page.locator(".account-records")).toContainText("성공 시각 미기록");
   const actualInspectionCount = currentAssets(snapshot, account.id).filter(asset => asset.state === "submitted").length;
-  await expect(page.locator(".account-flow-strip span").filter({ hasText: "심사" }).locator("strong")).toHaveText(String(actualInspectionCount));
+  await expect(page.locator(".account-owner-cycle .cycle-review strong")).toHaveText("심사 수 대조");
+  await page.locator(".account-owner-cycle .cycle-review").click();
+  await expect(page.getByRole("heading", { name: "심사 중인 그림" })).toBeVisible();
+  await expect(page.locator(".inventory-count strong")).toHaveText(`${actualInspectionCount}개`);
   await page.getByRole("button", { name: "패널 닫기" }).click();
   await page.getByRole("button", { name: "상태 수신" }).click();
   await expect(page.locator(".panel-automation")).toContainText("7번 → 8번 → 10번 → 13번");

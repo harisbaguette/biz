@@ -1,126 +1,102 @@
 import * as THREE from 'three';
 import type { ProcessKey } from './layout';
 
-/** One restrained material family for every machine, warehouse and game control. */
-export const industry = {
-  ground:'#86a68b', rim:'#718b79', concrete:'#d6ded1', floor:'#b4c5b8',
-  road:'#485f62', line:'#eadca6', steel:'#41666c', blue:'#547c8b',
-  white:'#e7ede2', dark:'#263f44', orange:'#d3944e', mint:'#70b8a2',
-  warning:'#e09b52', danger:'#c65c4d', unknown:'#8a9694', cargo:'#b98d60',
-} as const;
-export const facilityRoles: Record<ProcessKey,string> = {
-  generation:'production-line',review:'quality-gate',stock:'account-warehouses',
-  submission:'dispatch-depot',inspection:'review-bays',archive:'approved-storage',revenue:'monthly-treasury',
-};
-export interface FacilityTools {
-  key:ProcessKey; group:THREE.Group;
-  model:(name:string,parent:THREE.Object3D,width:number,depth:number,height:number)=>THREE.Object3D|null;
-  atModel:(name:string,x:number,z:number,width:number,depth:number,height:number,parent:THREE.Object3D)=>THREE.Object3D|null;
+/** Materials belong to a print workshop: ink, enamel, paper, glass and brass. */
+export const industry={ground:'#dce5e0',rim:'#7f9d99',concrete:'#d3dfd9',floor:'#f0f1e9',road:'#d0dcd6',line:'#f8f4e6',steel:'#345863',blue:'#477985',white:'#faf8ed',dark:'#17343f',orange:'#ce9a59',mint:'#67b6a3',warning:'#cd9b53',danger:'#bd625a',unknown:'#8c9b9b',cargo:'#f0e7d5'} as const;
+export const facilityRoles:Record<ProcessKey,string>={generation:'artwork-printing-press',review:'print-quality-gate',stock:'account-outgoing-prints',submission:'submission-planning-desk',inspection:'account-review-tables',archive:'account-publication-galleries',revenue:'monthly-revenue-ledger'};
+export interface WorkshopTools {
   box:(w:number,h:number,d:number,color:string,x:number,y:number,z:number,parent:THREE.Object3D)=>THREE.Mesh;
+  model:(name:string,parent:THREE.Object3D,w:number,d:number,h:number)=>THREE.Object3D|null;
+  dynamic:<T extends THREE.Object3D>(object:T)=>T;
 }
-export interface FacilityParts { height:number; active:THREE.Object3D[]; bays:THREE.Group[]; monthBins:THREE.Mesh[]; monthDoors:THREE.Mesh[]; monthSeals:THREE.Mesh[]; }
-function dynamic<T extends THREE.Object3D>(object:T){object.userData.dynamic=true;if(object instanceof THREE.Mesh)object.material=Array.isArray(object.material)?object.material.map(m=>m.clone()):object.material.clone();return object;}
-
-/** Open fronts keep the stock itself visible, including an unmistakably empty rack. */
-export function buildWarehouse(group:THREE.Group,box:FacilityTools['box']) {
-  box(8.1,.4,7.1,industry.concrete,0,.28,0,group);
-  box(7.7,.14,6.7,industry.floor,0,.56,0,group);
-  box(7.7,2.45,.24,industry.blue,0,1.85,-3.2,group);
-  for(const x of [-3.72,3.72])box(.22,1.9,6.2,industry.white,x,1.6,-.05,group);
-  box(8.05,.3,.65,industry.steel,0,3.2,-3.05,group);
-  for(const x of [-3.7,3.7])box(.26,3.0,.27,industry.steel,x,2.08,2.95,group);
-  box(8.05,.32,.36,industry.blue,0,3.6,2.95,group);
-  // Two shelves per bay; the empty floor and bare shelf grid remain visible at zero stock.
-  for(const x of [-2.55,0,2.55]){
-    for(const edge of [-.95,.95])box(.12,2.32,4.2,industry.steel,x+edge,1.78,-.15,group);
-    for(const y of [.73,1.61,2.49]){
-      for(const edge of [-.96,.96])box(.12,.10,4.1,industry.white,x+edge,y,-.15,group);
-      for(const z of [-2.14,1.84])box(2.08,.10,.12,industry.white,x,y,z,group);
-    }
-  }
-  box(5.6,.10,.3,industry.line,0,.62,3.05,group);
-  return 3.6;
+export interface StationParts {
+  stock:THREE.Group[];review:THREE.Group[];archive:THREE.Group[];
+  archiveStorage:THREE.Group;clock:THREE.Object3D|null;gate:THREE.Group;fault:THREE.Group;cart:THREE.Group;
+  artwork:{area:'stock'|'review'|'archive';object:THREE.Object3D}[];
 }
-
-/** Facilities are authored around their actual role, never substituted with houses. */
-export function buildProcessFacility({key,group,atModel,box}:FacilityTools):FacilityParts {
-  const active:THREE.Object3D[]=[],bays:THREE.Group[]=[],monthBins:THREE.Mesh[]=[],monthDoors:THREE.Mesh[]=[],monthSeals:THREE.Mesh[]=[];
-  group.userData.role=facilityRoles[key];
-  if(key==='stock')return {height:0,active,bays,monthBins,monthDoors,monthSeals};
-  if(key==='generation'||key==='review'){
-    const w=key==='generation'?18:13;
-    box(w,.65,10,industry.concrete,0,.25,0,group);
-    box(w-.6,3.5,.35,industry.blue,0,2.22,-4.5,group);
-    for(const x of [-w/2+.5,w/2-.5])box(.4,3.4,8.6,industry.white,x,2.2,0,group);
-    box(w+.25,.45,3.2,industry.steel,0,4.18,-3.4,group);
-    box(w+.25,.2,.45,industry.orange,0,4.28,-1.62,group);
-    if(key==='generation'){
-      atModel('machine',-4,-.2,5.4,5.5,3.5,group);
-      const arm=atModel('robot-arm-a',3,-.4,4,4,3.5,group);if(arm){const elbow=arm.getObjectByName('element-b'),wrist=arm.getObjectByName('element-d');if(elbow)elbow.rotation.z=.65;if(wrist)wrist.rotation.z=-1.1;active.push(dynamic(arm));}
-      atModel('conveyor-long',0,3.6,15,2.2,1.2,group);
-      for(const x of [-7.2,-5.9]){
-        const chimney=new THREE.Mesh(new THREE.CylinderGeometry(.55,.65,5.5,10),new THREE.MeshStandardMaterial({color:industry.steel,roughness:.8}));
-        chimney.position.set(x,3.4,-3.6);group.add(chimney);
-        const cap=box(1.55,.22,1.55,industry.white,x,6.2,-3.6,group);cap.rotation.y=Math.PI/4;
-      }
-      for(let i=0;i<5;i++){
-        const item=dynamic(box(.72,.58,.72,industry.orange,-5+i*2.3,1.08,3.6,group));
-        item.userData.beltOrigin=item.position.x;item.userData.belt=true;active.push(item);
-      }
-    }else{
-      atModel('scanner-high',0,.8,5,5,4,group);
-      atModel('conveyor-long',0,3.2,10.5,2.1,1.2,group);
-      atModel('screen-wide',-3.7,-1.8,2.3,1.2,2.2,group);
-      const sweep=dynamic(box(6,.08,.1,industry.mint,0,2.15,1.5,group));sweep.userData.scanner=true;active.push(sweep);
-    }
-    return {height:4.6,active,bays,monthBins,monthDoors,monthSeals};
+function place(tools:WorkshopTools,name:string,parent:THREE.Object3D,x:number,y:number,z:number,w:number,d:number,h:number){
+  const holder=new THREE.Group();holder.position.set(x,y,z);parent.add(holder);const object=tools.model(name,holder,w,d,h);return {holder,object};
+}
+function metalRing(parent:THREE.Object3D,x:number,y:number,z:number,size:number,color:string){
+  const mesh=new THREE.Mesh(new THREE.TorusGeometry(size,.06,7,20,Math.PI),new THREE.MeshStandardMaterial({color,metalness:.48,roughness:.36}));mesh.position.set(x,y,z);parent.add(mesh);return mesh;
+}
+/** Every account keeps its outgoing prints, review and finished pictures within arm's reach. */
+export function buildAccountStation(group:THREE.Group,tools:WorkshopTools):StationParts {
+  const {box,dynamic}=tools,stock:THREE.Group[]=[],review:THREE.Group[]=[],archive:THREE.Group[]=[],artwork:StationParts['artwork']=[];
+  // A large examination table is the centre. Its open surface is visible when review is empty.
+  box(4.9,.20,3.1,industry.dark,-.25,1.05,-.35,group);
+  box(4.72,.12,2.96,industry.white,-.25,1.21,-.35,group);
+  for(const x of [-2.35,1.85])for(const z of [-1.65,.95])box(.18,1.0,.18,industry.blue,x,.58,z,group);
+  box(4.72,.13,.15,industry.orange,-.25,1.34,1.08,group);box(4.72,.13,.15,industry.orange,-.25,1.34,-1.78,group);for(const x of [-2.55,2.05])box(.13,.13,2.86,industry.orange,x,1.34,-.35,group);
+  for(const x of [-1.9,1.4])box(.08,.035,1.95,industry.concrete,x,1.286,-.25,group);
+  // Small outgoing pallet, visibly secondary to the review table.
+  box(1.35,.13,1.50,industry.blue,-2.3,.27,1.45,group);
+  for(const z of [1.0,1.45,1.9])box(1.40,.08,.19,industry.white,-2.3,.38,z,group);
+  for(let i=0;i<3;i++){
+    const {holder,object}=place(tools,'print-stack',group,-2.3,.44+i*.19,1.45,1.13,1.0,.20);dynamic(holder);holder.visible=false;stock.push(holder);if(object)artwork.push({area:'stock',object});
   }
-  if(key==='submission'){
-    box(25,.6,8,industry.concrete,0,.25,0,group);
-    box(24.5,2.9,.3,industry.blue,0,1.95,-3.5,group);
-    box(25,.4,2.5,industry.steel,0,3.7,-2.7,group);
-    for(const x of [-10,-5,0,5,10]){
-      box(.22,3.4,5.8,industry.white,x,2,-.7,group);
-      box(3.5,.12,3.8,industry.dark,x,.64,.1,group);
-      box(3.2,.08,.4,industry.line,x,.74,2.6,group);
-    }
-    atModel('warning-traffic',11,2.3,1.2,1.2,3.2,group);
-    return {height:3.8,active,bays,monthBins,monthDoors,monthSeals};
+  // Four piles are a density representation; the exact current number stays on the nameplate.
+  for(let i=0;i<4;i++){
+    const {holder,object}=place(tools,'print-stack',group,-1.25+(i%2)*1.9,1.36,-1.0+Math.floor(i/2)*1.25,1.72,1.16,.32);dynamic(holder);holder.rotation.y=(i%2===0?-.035:.035);holder.visible=false;review.push(holder);if(object)artwork.push({area:'review',object});
   }
-  if(key==='inspection'||key==='archive'){
-    box(41,.55,8.1,industry.concrete,0,.28,0,group);
-    box(40.3,key==='inspection'?1.5:2.9,.3,key==='inspection'?industry.orange:industry.blue,0,key==='inspection'?1.35:2.05,-3.5,group);
-    if(key==='archive')box(41,.5,2.45,industry.blue,0,3.7,-2.65,group);
-    for(let i=0;i<13;i++){
-      const bay=new THREE.Group();bay.position.set(-18+i*3,0,.25);group.add(bay);bays.push(bay);
-      box(2.8,.12,5.4,industry.floor,0,.63,0,bay);
-      for(const x of [-1.4,1.4])box(.12,key==='inspection'?1.3:2.4,5.4,industry.white,x,key==='inspection'?1.28:1.83,0,bay);
-      box(2.5,.08,.3,industry.line,0,.72,2.5,bay);
-      if(key==='inspection')box(2.45,.12,2.3,industry.steel,0,1.13,-1,bay);
-      else for(const y of [1.2,2.1]){for(const x of [-1.18,1.18])box(.12,.10,4.6,industry.white,x,y,-.15,bay);for(const z of [-2.39,2.09])box(2.5,.10,.12,industry.white,0,y,z,bay);}
-    }
-    if(key==='inspection'){
-      for(const x of [-15,0,15])atModel('scanner-high',x,.6,4.2,5,4.4,group);
-      box(40,.3,.65,industry.orange,0,4.3,.8,group);
-      for(const x of [-19.5,19.5])box(.55,4.1,.65,industry.steel,x,2.6,.8,group);
-      atModel('conveyor-long',0,3.2,38,1.2,.9,group);
-      const sweep=dynamic(box(39,.05,.12,industry.mint,0,2.3,.6,group));sweep.userData.scanner=true;active.push(sweep);
-    }
-    return {height:3.65,active,bays,monthBins,monthDoors,monthSeals};
+  const clockPlace=place(tools,'review-clock',group,1.8,1.28,-1.4,.68,.39,.83);dynamic(clockPlace.holder);
+  // A broad picture is shown only when an actual published thumbnail is available.
+  box(1.4,.11,3.15,industry.blue,2.65,.55,-.05,group);
+  for(const z of [-1.5,1.4])box(.13,.6,.16,industry.steel,2.65,.28,z,group);
+  for(let i=0;i<2;i++){
+    const {holder,object}=place(tools,'gallery-frame',group,2.65+i*.1,.62,.65-i*1.05,1.45,.68,1.62);dynamic(holder);holder.visible=false;archive.push(holder);if(object)artwork.push({area:'archive',object});
   }
-  // Twelve vault drawers correspond to twelve months. Unrecorded months remain open and empty.
-  box(41,.6,8.2,industry.concrete,0,.3,0,group);
-  box(40.3,3.0,.6,industry.steel,0,2.1,-3.3,group);
-  box(41,.5,2.1,industry.white,0,3.85,-2.5,group);
-  for(const x of [-20,20]){box(1.0,3.6,7.0,industry.steel,x,2.4,0,group);box(1.3,.35,7.3,industry.orange,x,4.3,0,group);}
+  const archiveStorage=dynamic(new THREE.Group());archiveStorage.position.set(2.65,.61,.0);group.add(archiveStorage);
+  box(1.6,.65,2.3,industry.mint,0,.35,0,archiveStorage);box(1.5,.11,2.1,industry.steel,0,.72,0,archiveStorage);
+  for(let i=0;i<4;i++)box(1.25,.025,.08,industry.white,0,.76,-.72+i*.45,archiveStorage);box(.65,.035,.65,industry.mint,0,.81,0,archiveStorage);const topTick=box(.23,.035,.10,industry.white,-.12,.85,.02,archiveStorage);topTick.rotation.y=-.65;const topTick2=box(.40,.035,.10,industry.white,.08,.85,.0,archiveStorage);topTick2.rotation.y=.65;
+  box(.42,.42,.07,industry.mint,0,.44,1.2,archiveStorage);const tick=box(.23,.06,.035,industry.white,-.07,.43,1.25,archiveStorage);tick.rotation.z=-.65;const tick2=box(.34,.06,.035,industry.white,.10,.48,1.25,archiveStorage);tick2.rotation.z=.65;archiveStorage.visible=false;
+  // A short roller incline joins outgoing sheets to the examination well.
+  const feed=new THREE.Group();feed.position.set(-1.55,.85,1.15);feed.rotation.y=-.65;feed.rotation.x=-.25;group.add(feed);box(.68,.12,1.65,industry.steel,0,0,0,feed);
+  for(let i=0;i<5;i++){const roller=new THREE.Mesh(new THREE.CylinderGeometry(.065,.065,.7,10),new THREE.MeshStandardMaterial({color:industry.white,roughness:.4,metalness:.3}));roller.rotation.z=Math.PI/2;roller.position.set(0,.08,-.65+i*.325);feed.add(roller);}
+  const gate=dynamic(new THREE.Group());gate.position.set(-2.3,0,2.05);group.add(gate);
+  for(const x of [-.82,.82])box(.17,1.3,.25,industry.dark,x,.8,0,gate);box(1.85,.38,.25,industry.danger,0,1.2,0,gate);for(const x of [-.6,0,.6]){const stripe=box(.15,.39,.035,industry.orange,x,1.2,.15,gate);stripe.rotation.z=-.3;}
+  box(.48,.50,.16,industry.orange,.1,1.23,.22,gate);metalRing(gate,.1,1.54,.22,.18,industry.orange);gate.visible=false;
+  const fault=dynamic(new THREE.Group());fault.position.set(-1.35,.18,1.75);fault.scale.setScalar(1.65);group.add(fault);
+  box(.75,.3,.48,industry.danger,0,.22,0,fault);const sign=new THREE.Mesh(new THREE.ConeGeometry(.4,.9,3),new THREE.MeshStandardMaterial({color:industry.orange,roughness:.45,metalness:.15}));sign.rotation.y=Math.PI;sign.position.set(-.15,.88,0);fault.add(sign);const handle=box(.5,.09,.09,industry.white,0,.43,0,fault);handle.rotation.z=-.35;metalRing(fault,.16,.67,0,.15,industry.dark);fault.visible=false;
+  const cart=dynamic(new THREE.Group());cart.position.set(-1.3,.20,1.48);group.add(cart);
+  box(.9,.1,.7,industry.mint,0,.28,0,cart);box(.08,.6,.08,industry.steel,.4,.55,-.26,cart);box(.08,.6,.08,industry.steel,.4,.55,.26,cart);box(.08,.08,.62,industry.steel,.4,.86,0,cart);
+  for(const x of [-.32,.32])for(const z of [-.25,.25]){const wheel=new THREE.Mesh(new THREE.CylinderGeometry(.12,.12,.08,9),new THREE.MeshStandardMaterial({color:industry.dark,roughness:.7}));wheel.rotation.z=Math.PI/2;wheel.position.set(x,.12,z);cart.add(wheel);}
+  return {stock,review,archive,archiveStorage,clock:clockPlace.object,gate,fault,cart,artwork};
+}
+export interface SharedParts { active:THREE.Object3D[];months:THREE.Mesh[];monthSeals:THREE.Mesh[]; }
+export function buildPrintPress(group:THREE.Group,tools:WorkshopTools):SharedParts {
+  const {box,model,dynamic}=tools,active:THREE.Object3D[]=[];
+  // Paper hopper, curved printer body, a dark output slot and an exposed roller bed.
+  box(13.5,.18,6.2,industry.white,-.6,.28,0,group);
+  box(7.2,1.85,3.3,industry.white,-2.8,1.35,-.45,group);
+  box(.38,1.94,3.25,industry.danger,-6.25,1.38,-.45,group);box(.38,1.94,3.25,industry.danger,.65,1.38,-.45,group);
+  box(5.7,.18,2.5,industry.blue,-2.8,2.36,-.6,group);box(4.7,.10,1.65,industry.dark,-2.8,2.52,-.55,group);
+  box(4.8,.42,.12,industry.dark,-2.8,1.25,1.25,group);box(5.1,.10,.24,industry.orange,-2.8,1.0,1.35,group);
+  const hopper=new THREE.Group();hopper.position.set(-3.4,2.56,-.65);group.add(hopper);model('print-stack',hopper,2.5,1.7,.4);active.push(hopper);
+  const output=new THREE.Group();output.position.set(-2.8,.45,2.5);group.add(output);model('conveyor-long',output,1.7,3.8,.65);
+  const scan=new THREE.Group();scan.position.set(3.6,.47,.1);group.add(scan);model('scanner-high',scan,2.5,3.3,2.7);
+  const cross=new THREE.Group();cross.position.set(2.2,.43,.8);cross.rotation.y=Math.PI/2;group.add(cross);model('conveyor-long',cross,1.3,4.2,.65);
+  for(const [i,color]of [industry.mint,industry.danger,industry.orange].entries()){
+    const roller=new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,1.5,16),new THREE.MeshStandardMaterial({color,roughness:.3,metalness:.2}));roller.rotation.z=Math.PI/2;roller.position.set(1.3+i*1.25,1.4,-.6);group.add(roller);
+  }
+  const print=dynamic(new THREE.Group());print.position.set(-2.8,1.12,2.15);group.add(print);model('print-stack',print,1.65,1.2,.25);active.push(print);
+  return {active,months:[],monthSeals:[]};
+}
+/** The spare work bays hold a compact ledger and the submission clock, not remote warehouses. */
+export function buildLedger(group:THREE.Group,tools:WorkshopTools):SharedParts {
+  const {box,dynamic}=tools,months:THREE.Mesh[]=[],monthSeals:THREE.Mesh[]=[];
+  box(4.7,.23,3.5,industry.blue,0,.80,0,group);for(const x of [-2,2])box(.25,.75,2.8,industry.dark,x,.43,0,group);
+  box(3.9,.13,2.7,industry.dark,0,1.0,-.1,group);const left=box(1.75,.10,2.5,industry.white,-.9,1.18,-.1,group);left.rotation.z=-.12;const right=box(1.75,.10,2.5,industry.white,.9,1.18,-.1,group);right.rotation.z=.12;
   for(let i=0;i<12;i++){
-    const x=-17.6+i*3.2;
-    box(2.85,.16,4.9,industry.dark,x,.76,.1,group);
-    for(const side of [-1,1])box(.14,1.9,4.9,industry.white,x+side*1.35,1.78,.1,group);
-    const fill=dynamic(box(2.2,.8,2.6,industry.orange,x,1.25,.45,group));fill.visible=false;monthBins.push(fill);
-    const door=dynamic(box(2.5,1.95,.2,industry.unknown,x,1.8,2.35,group));monthDoors.push(door);
-    const seal=dynamic(new THREE.Mesh(new THREE.CylinderGeometry(.22,.22,.1,10),new THREE.MeshStandardMaterial({color:industry.mint,emissive:industry.mint,emissiveIntensity:.15})));seal.rotation.x=Math.PI/2;seal.position.set(x+.83,1.83,2.5);group.add(seal);monthSeals.push(seal);
-    const handle=box(.8,.13,.13,industry.steel,x,.9,2.6,group);handle.userData.month=i+1;
+    const x=-1.5+(i%6)*.6,z=-.9+Math.floor(i/6)*1.1;
+    const month=dynamic(box(.43,.06,.72,industry.concrete,x,1.30,z,group));months.push(month);
+    const seal=dynamic(new THREE.Mesh(new THREE.CylinderGeometry(.11,.11,.06,12),new THREE.MeshStandardMaterial({color:industry.mint,metalness:.2,roughness:.6})));seal.position.set(x,1.36,z);group.add(seal);monthSeals.push(seal);
   }
-  return {height:3.7,active,bays,monthBins,monthDoors,monthSeals};
+  return {active:[],months,monthSeals};
+}
+export function buildSubmissionClock(group:THREE.Group,tools:WorkshopTools):SharedParts {
+  const {box,model}=tools;box(4.6,.20,3.5,industry.white,0,.38,0,group);box(3.9,2.0,.35,industry.blue,0,1.55,-.85,group);
+  const holder=new THREE.Group();holder.position.set(-1.1,.5,.8);group.add(holder);const clock=model('review-clock',holder,1.05,.6,1.3);for(const name of ['hour-hand','minute-hand']){const hand=clock?.getObjectByName(name);if(hand)hand.visible=false;}
+  for(let i=0;i<13;i++)box(.42,.32,.12,industry.concrete,-1.45+(i%6)*.56,1.1+Math.floor(i/6)*.45,-.61,group);
+  return {active:[],months:[],monthSeals:[]};
 }

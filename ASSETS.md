@@ -74,3 +74,25 @@
 다운로드는 `python3 ~/.codex/scripts/asset_fetch.py url <공식ZIP> --source "Kenney Factory Kit 3.0" --license CC0-1.0 --out file`로 공식 원본을 캐시에 받았다. 제품 폴더에는 선택한 16 GLB·manifest·라이선스만 배치한다. 원팩 ZIP·홍보 이미지·비교 이미지는 제품에 포함하지 않는다. 일본 후보 프리뷰는 검토용 `artifacts/industrial-assets/japan-reference.jpg`에만 있다.
 
 재현: `python3 scripts/pack-industrial-assets.py <공식원팩해제경로>`; 검증: `node scripts/preview-industrial-assets.mjs`. 신규 16종과 재사용 4종 **20개 중 20개**를 headless Chromium/GLTFLoader로 렌더했고, JS 오류 0·접지 20/20이다. 증거는 ignored `artifacts/industrial-assets/render-audit.json`, `all-models.png`다. 이 에셋 단독 렌더와 실제 운영 씬 연결 검증은 구분한다. 실제 씬의 모델 참조와 상태별 동작은 `src/world/World.tsx` 통합 검증에서 확인한다.
+
+## 2026-10-23 작품 운영 소품
+
+산업 장면의 모든 재고를 갈색 상자로 표현하면 그림 제작·제출·심사·공개가 구별되지 않는다. 이 단계에서는 **그림 프린트 묶음 → 봉인된 제출 서류 → 심사 시계 → 공개 작품 액자**를 각 단계의 실제 재료로 쓴다. 빈 수량에서는 해당 재료를 배치하지 않는다. 실제 계정 작품은 운영 시 인증된 썸네일을 연결하며, 모형에 가짜 작품 이미지를 포함하지 않는다.
+
+| 비교 재료 | 확인한 범위 | 판정 |
+|---|---|---|
+| 일본 [3D屋さん](https://3dyasan.com/) | 등록부의 실내·생활 소품과 재배포 조건, 이번 그림 액자 검색 경로 접근 실패 | 웹에서 GLB 원본을 포함할 권한을 확정하지 못하여 도입하지 않음 |
+| [Kenney Furniture Kit](https://kenney.nl/assets/furniture-kit) | 공식 CC0, 공식 샘플 직접 확인, 원팩 GLB **140개**의 전체 파일명 검사 | 책·책장·가구는 있으나 작품 프린트·봉인 제출물·탁상시계·전시 액자가 없음. 책을 프린트로 이름만 바꾸지 않고 채택하지 않음 |
+| 기존 Kenney Factory Kit 3.0 | 이전 구현에서 연결한 산업 6개·화물 2개·차량 1개의 실제 용도 | 생산 기계·갈색 화물만으로 작품의 상태를 설명하기 어려워 계정 작업대 주 재료로 확대하지 않음. 기존 도입 권리 기록은 보존 |
+| BLUEKITE WORKS 자체 제작 | 아래 **4개**를 각 업무의 실루엣과 작은 화면 식별성에 맞춰 제작 | 채택. 서로 다른 구조·주 재료·행동을 가진 4종이며 단순 상자의 이름을 바꾼 모형이 아님 |
+
+| 실제 파일 | 출처·권리 | 형태·연결 |
+|---|---|---|
+| `public/assets/workshop/print-stack.glb` | 프로젝트 자체 제작, 외부 모형·이미지·텍스처 없음 | 벌어진 종이 6장, 들린 귀퉁이, 인덱스 탭, 황동 손잡이의 바인더 클립. 맨 위 인쇄면 `artwork-surface`는 +Y 방향, 1.43×1.04 |
+| `public/assets/workshop/submission-folio.glb` | 같은 자체 제작 | 서로 어긋난 서류 3겹, 삼각형 봉투 덮개, 코랄 봉인 띠·원형 봉인·주소창. 심사 완료 체크를 포함하지 않음 |
+| `public/assets/workshop/review-clock.glb` | 같은 자체 제작 | 짙은 청록 케이스·아이보리 시계판·12개 눈금·두 바늘·금속 테두리·두 받침. 시계판 +Z, `hour-hand`/`minute-hand` 노드를 분리함. 기본 바늘은 예시이며 실제 심사 완료 시간을 보증하지 않음 |
+| `public/assets/workshop/gallery-frame.glb` | 같은 자체 제작 | 직립 액자, 매트보드, 코랄 모서리 상감, 받침·뒤 지지대. 실제 작품 면 `artwork-surface`는 +Z 방향, .91×1.10. 액자는 약 7도 뒤로 기울어짐 |
+
+제작 코드와 원산지 기록은 `scripts/pack-workshop-assets.mjs`, `public/assets/workshop/SOURCE.txt`다. 흰 종이·따뜻한 아이보리·짙은 청록 테두리·코랄 봉인·노란 금속을 재료별로 나누었으며 모형 전체를 한 색으로 바꾸지 않는다. 제품에 다른 제작자의 작품·상표·홍보 이미지를 포함하지 않는다.
+
+전체 **4개 중 4개**, 총 **512,100 bytes / 5,220 triangles**. +Y 상향·XZ 중심·Y 바닥 0, 외부 버퍼·이미지 의존 0. 모델별 크기와 앞면은 `public/assets/workshop/manifest.json`에 있다. `node scripts/pack-workshop-assets.preview.mjs`로 headless Chromium에서 4/4 GLTFLoader 로드·접지, JavaScript 오류 0을 확인했다. 큰 렌더와 **48px 축소본**은 ignored `artifacts/workshop-assets/all-models.png`, 측정은 `render-audit.json`에 있다. 실제 운영 씬에서 계정별 그림을 연결하고 비어 있을 때 숨기는 동작은 World 통합 검증에서 확인한다.

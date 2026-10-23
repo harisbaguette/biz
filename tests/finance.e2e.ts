@@ -12,6 +12,7 @@ async function openRevenue(page: Page) {
 async function worldMonth(page: Page, month: number) {
   return page.evaluate(m => (window as any).__bizWorld?.revenue?.months?.find((v: {month:number}) => v.month === m), month);
 }
+async function canvasFrame(page: Page) { return page.locator(".world canvas").screenshot(); }
 
 test('모바일 실제 수익 시설에서 12개월·13계정을 확인하고 0원 저장·재접속·미기록 변경을 구분한다', async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
@@ -22,13 +23,19 @@ test('모바일 실제 수익 시설에서 12개월·13계정을 확인하고 0�
   expect((await page.getByLabel('계정', { exact: true }).boundingBox())!.height).toBeGreaterThanOrEqual(44);
   expect((await page.getByLabel('연도').boundingBox())!.height).toBeGreaterThanOrEqual(44);
   await expect(page.locator('.finance-balance')).toContainText('미기록');
+  await page.getByRole('button', { name: '패널 닫기' }).click();
+  const unrecordedFrame = await canvasFrame(page);
+  await openRevenue(page);
   await page.getByRole('button', { name: '1월 미기록 기록 편집', exact: true }).click();
   await expect(page.getByLabel('확정 수익 · 원')).toBeFocused();
   await page.getByLabel('확정 수익 · 원').fill('0');
   await page.getByRole('button', { name: '기록 저장', exact: true }).click();
   await expect(page.getByRole('button', { name: '1월 0원 기록 편집', exact: true })).toBeEnabled();
   await expect(page.locator('.finance-balance')).toContainText('기록한 1/12개월 합계');
-  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ amount: 0, visible: true });
+  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ month: 1, amount: 0 });
+  await page.getByRole('button', { name: '패널 닫기' }).click();
+  const zeroFrame = await canvasFrame(page);
+  expect(zeroFrame.equals(unrecordedFrame), '기록한 0원은 미기록과 다른 실제 Three.js 장면이어야 함').toBe(false);
   await page.reload();
   await page.waitForFunction(() => (window as any).__bizWorld?.ready === true);
   await openRevenue(page);
@@ -38,7 +45,9 @@ test('모바일 실제 수익 시설에서 12개월·13계정을 확인하고 0�
   await page.getByRole('button', { name: '기록 저장', exact: true }).click();
   await expect(page.getByRole('button', { name: '1월 미기록 기록 편집', exact: true })).toBeEnabled();
   await expect(page.locator('.finance-balance')).toContainText('미기록');
-  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ amount: null, visible: false });
+  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ month: 1, amount: null });
+  await page.getByRole('button', { name: '패널 닫기' }).click();
+  expect((await canvasFrame(page)).equals(zeroFrame), '미기록으로 되돌리면 Three.js 월 금고도 빈 상태로 바뀌어야 함').toBe(false);
   expect(await DB.prepare('SELECT amount_krw AS amount,revision FROM revenue_months').first()).toMatchObject({ amount: null, revision: 2 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'artifacts/verification/finance-mobile-integrated.png', fullPage: true });
@@ -71,7 +80,7 @@ test('실제 수익 시설에서 저장 장애·동시 편집 입력을 보존�
   await expect(page.getByLabel('메모 · 선택')).toHaveValue('입력 유지');
   await page.getByRole('button', { name: '기록 저장', exact: true }).click();
   await expect(page.getByRole('button', { name: '2월 10,000원 기록 편집', exact: true })).toBeEnabled();
-  await expect.poll(() => worldMonth(page, 2)).toMatchObject({ amount: 10000, visible: true });
+  await expect.poll(() => worldMonth(page, 2)).toMatchObject({ month: 2, amount: 10000 });
   expect(await DB.prepare('SELECT amount_krw AS amount,revision FROM revenue_months').first()).toMatchObject({ amount: 10000, revision: 2 });
 });
 
@@ -82,37 +91,42 @@ test('수익 기록과 계정 선택은 같은 공간의 실제 12개 금고 적
     await DB.prepare('INSERT INTO revenue_months VALUES(?,?,?,?,?,?,?)').bind(snapshot.accounts[account].id, year, month, amount, '', 1, new Date().toISOString()).run();
   }
   await enter(page); await openRevenue(page);
-  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ amount: 10000, visible: true });
-  expect(await page.evaluate(() => (window as any).__bizWorld.revenue.months.length)).toBe(12);
+  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ month: 1, amount: 10000 });
+  await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.revenue.months.length)).toBe(12);
+  await expect(page.locator('.finance-vault')).toHaveCount(12);
   await page.getByLabel('계정', { exact: true }).selectOption(snapshot.accounts[1].id);
   await expect(page.getByRole('button', { name: '2월 20,000원 기록 편집', exact: true })).toBeEnabled();
-  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ amount: null, visible: false });
-  await expect.poll(() => worldMonth(page, 2)).toMatchObject({ amount: 20000, visible: true });
+  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ month: 1, amount: null });
+  await expect.poll(() => worldMonth(page, 2)).toMatchObject({ month: 2, amount: 20000 });
+  await page.getByRole('button', { name: '패널 닫기' }).click();
+  const beforeThirty = await canvasFrame(page);
+  await openRevenue(page);
   await page.getByRole('button', { name: '3월 미기록 기록 편집', exact: true }).click();
   await page.getByLabel('확정 수익 · 원').fill('30000');
   await page.getByRole('button', { name: '기록 저장', exact: true }).click();
-  await expect.poll(() => worldMonth(page, 3)).toMatchObject({ amount: 30000, visible: true });
+  await expect.poll(() => worldMonth(page, 3)).toMatchObject({ month: 3, amount: 30000 });
   await page.getByRole('button', { name: '패널 닫기' }).click();
+  expect((await canvasFrame(page)).equals(beforeThirty), '양수 수익이 반영되면 Three.js 금고 높이가 바뀌어야 함').toBe(false);
   await expect(page.getByRole('dialog', { name: '월별 수익 기록부' })).toBeHidden();
-  await expect(page.locator('[data-process="revenue"]')).toContainText('2번');
+  await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.revenue.accountId)).toBe(snapshot.accounts[1].id);
   await page.screenshot({ path: 'artifacts/verification/finance-world-updated.png', fullPage: true });
   await openRevenue(page);
   await expect(page.getByLabel('계정', { exact: true })).toHaveValue(snapshot.accounts[1].id);
   await page.getByLabel('계정', { exact: true }).selectOption(snapshot.accounts[0].id);
-  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ amount: 10000, visible: true });
-  await expect.poll(() => worldMonth(page, 2)).toMatchObject({ amount: null, visible: false });
-  await expect.poll(() => worldMonth(page, 3)).toMatchObject({ amount: null, visible: false });
+  await expect.poll(() => worldMonth(page, 1)).toMatchObject({ month: 1, amount: 10000 });
+  await expect.poll(() => worldMonth(page, 2)).toMatchObject({ month: 2, amount: null });
+  await expect.poll(() => worldMonth(page, 3)).toMatchObject({ month: 3, amount: null });
   const previousYear = year - 1;
   await DB.prepare('INSERT INTO revenue_months VALUES(?,?,?,?,?,?,?)').bind(snapshot.accounts[0].id, previousYear, 4, 45000, '전년도 확정', 1, new Date().toISOString()).run();
   await page.getByLabel('연도').selectOption(String(previousYear));
   await expect(page.getByRole('button', { name: '4월 45,000원 기록 편집', exact: true })).toBeEnabled();
   await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.revenue.year)).toBe(previousYear);
-  await expect.poll(() => worldMonth(page, 4)).toMatchObject({ amount: 45000, visible: true });
+  await expect.poll(() => worldMonth(page, 4)).toMatchObject({ month: 4, amount: 45000 });
   await page.getByRole('button', { name: '패널 닫기' }).click();
   await expect(page.locator('[data-process="revenue"]')).toContainText(String(previousYear));
   await openRevenue(page);
   await expect(page.getByLabel('연도')).toHaveValue(String(previousYear));
   await expect(page.getByRole('button', { name: '4월 45,000원 기록 편집', exact: true })).toBeEnabled();
   await expect.poll(() => page.evaluate(() => (window as any).__bizWorld.revenue.year)).toBe(previousYear);
-  await expect.poll(() => worldMonth(page, 4)).toMatchObject({ amount: 45000, visible: true });
+  await expect.poll(() => worldMonth(page, 4)).toMatchObject({ month: 4, amount: 45000 });
 });

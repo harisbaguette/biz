@@ -118,7 +118,9 @@ export function normalizedSnapshot(s: Snapshot): Snapshot {
   })) };
 }
 export function nextSubmission(s: Snapshot, accountId: string) {
-  return s.calendar.filter(v => v.accountId === accountId && v.next_upload_on)
+  // A manually recorded plan, not an execution reservation. A newer batch with
+  // no plan must not inherit a prior batch's date.
+  return s.calendar.filter(v => v.accountId === accountId)
     .sort((a, b) => b.uploaded_on.localeCompare(a.uploaded_on))[0]?.next_upload_on || null;
 }
 export function recovery(a: Account) {

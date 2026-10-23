@@ -55,7 +55,7 @@ export function accountFlow(account: Account, snapshot: Snapshot, stale: boolean
   else if (isIssue(account)) { dispatchMode = 'fault'; }
   else if (account.running && upload.active) { dispatchMode = 'working'; dispatchLabel = '실행 감지 · 단계 미확인'; }
   else if (!snapshot.automation.enabled) { dispatchMode = 'paused'; dispatchLabel = '제출 정지'; }
-  else if (dispatchAt && Date.parse(dispatchAt) > now) { dispatchMode = 'scheduled'; dispatchLabel = `${date(dispatchAt)} 제출 예정`; }
+  else if (dispatchAt && Date.parse(dispatchAt) > now) { dispatchMode = 'scheduled'; dispatchLabel = `${date(dispatchAt)} 제출 계획`; }
   else if (['review_pending', 'capacity_full', 'review_scheduled'].includes(account.status)) { dispatchMode = 'waiting'; }
   else if (account.ready <= 0) { dispatchMode = 'empty'; dispatchLabel = '재고 대기'; }
   else if (upload.issue) { dispatchMode = 'unknown'; dispatchLabel = upload.label; }

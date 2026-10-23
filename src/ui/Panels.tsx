@@ -1,6 +1,5 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import {
-  ArrowRight,
   CalendarDays,
   Check,
   ChevronLeft,
@@ -9,6 +8,7 @@ import {
   Focus,
   Minus,
   Gamepad2,
+  History,
   Image,
   KeyRound,
   Layers3,
@@ -30,7 +30,6 @@ import {
   assetStatus,
   assetReason,
   uploadCondition,
-  nextSubmission,
   recovery,
   request,
   date,
@@ -46,8 +45,9 @@ import {
 import { Empty, IconButton, Modal, Thumb } from "./Primitives";
 import { Management } from "./Management";
 import { Finance } from "./Finance";
-import { accountFlow, currentAssets, expectedDateLabel } from "../operations-state";
-import { processState, type ProcessKey } from "../game-state";
+import { currentAssets } from "../operations-state";
+import { accountCycle } from "../owner-cycle";
+import { commandObservation, processState, type ProcessKey } from "../game-state";
 import { Button, Input, Select, Switch } from "../design-system/components";
 import "./Panels.css";
 
@@ -132,7 +132,7 @@ export function Panels(p: Props) {
   const [history, setHistory] = useState<Schedule[]>([]);
   const [historyCursor, setHistoryCursor] = useState<string | null | undefined>(undefined);
   const [historyBusy, setHistoryBusy] = useState(false);
-  const [draft, setDraft] = useState({ id: crypto.randomUUID(), account: "1", title: "", kind: "memo", due: "" });
+  const [draft, setDraft] = useState({ id: crypto.randomUUID(), account: "1", title: "", kind: "recheck", due: "" });
   const body = useRef<HTMLDivElement>(null);
   const scrollPositions = useRef<Record<string, number>>({});
   const scrollKey = p.panel + ":" + (p.selected?.id || "all");
@@ -142,9 +142,12 @@ export function Panels(p: Props) {
     accounts = s.accounts;
   const accountMatches = accounts.filter(v => `${accountLabel(v)} ${v.email || ""}`.toLocaleLowerCase().includes(accountQuery.trim().toLocaleLowerCase()));
   const upload = uploadCondition(s);
-  const flow = a ? accountFlow(a, s, p.stale) : null;
+  const cycle = a ? accountCycle(a, s, p.stale, { schedules: p.data.schedules }) : null;
   const accountCommand = a ? p.data.commands.find(v => v.action === "recheck" && String(v.payload.accountId) === a.id) : undefined;
   const accountPending = accountCommand?.status === "queued";
+  const accountCommandState = a ? commandObservation(a, accountCommand) : null;
+  const scopedAccounts = accounts.filter(account => !a || account.id === a.id);
+  const submissionPlans = scopedAccounts.map(account => ({ account, cycle: accountCycle(account, s, p.stale, { schedules: p.data.schedules }) })).filter(row => row.cycle.submissionPlanOn);
   const schedules = p.data.schedules.filter(v => !a || v.account_id === a.id);
   const historyRows = [...new Map([...schedules.filter(v => ["done", "cancelled"].includes(v.status)), ...history.filter(v => !a || v.account_id === a.id)].map(v => [v.id, v])).values()];
   const nextCursor = historyCursor === undefined ? p.data.scheduleHistory?.nextCursor : historyCursor;
@@ -158,15 +161,15 @@ export function Panels(p: Props) {
   }
   const titles: Record<string, string> = {
     account: a ? accountLabel(a) : "계정",
-    accounts: "13개 계정 창고",
-    inventory: "재고 창고",
-    schedule: "일정",
-    activity: "최근 변화",
+    accounts: "13개 계정",
+    inventory: filter === "review" ? "심사 중인 그림" : filter === "archive" ? "승인·공개" : filter === "approved" ? "승인된 그림" : filter === "published" ? "공개된 그림" : filter === "hold" ? "확인 필요한 그림" : filter === "excluded" ? "제출 제외 그림" : filter === "all" ? "모든 그림" : "제출할 그림",
+    schedule: "다음 일정",
+    activity: "제출·심사 이력",
     alerts: "확인할 일",
-    automation: "자동 운영",
-    businesses: "운영실",
+    automation: "자동화 설정",
+    businesses: "사업 관리",
     revenue: "월별 수익 기록부",
-    management: "운영 계획·보고",
+    management: "사업 계획·보고",
   };
   async function execute(action: string, payload: Record<string, unknown>) {
     setBusy(true);
@@ -184,7 +187,7 @@ export function Panels(p: Props) {
   }
   const openSchedule = (previous?: Schedule) => {
     setError("");
-    setDraft({ id: crypto.randomUUID(), account: previous?.account_id || a?.id || "1", title: previous?.title || "", kind: previous?.kind || "memo", due: new Date(Date.now() + 10 * 3600000).toISOString().slice(0,16) });
+    setDraft({ id: crypto.randomUUID(), account: previous?.account_id || a?.id || "1", title: previous?.title || "", kind: previous?.kind || "recheck", due: "" });
     setSchedule(true);
   };
   const makeRecheck = (account: Account) => {
@@ -194,7 +197,7 @@ export function Panels(p: Props) {
       action: "recheck",
       payload: { accountId: account.id },
       title: "계정 재확인",
-      description: `${accountLabel(account)}. 기존 순서와 30분 간격에 따라 계정과 제출 상태를 다시 확인합니다. 로그인은 ${account.browser || "지정"} 브라우저에서 먼저 마쳐 주세요.`,
+      description: `${accountLabel(account)} 재확인을 요청합니다. ${isIssue(account) ? "표시된 원인을 먼저 해결하세요. " : ""}실제 확인은 기존 간격·순서를 따릅니다. 요청 반영은 플랫폼 조회·제출 완료와 별개입니다.`,
     });
   };
   const toggle = (lane: string, enabled: boolean) => {
@@ -281,11 +284,6 @@ export function Panels(p: Props) {
       <aside ref={panelRoot} role="dialog" aria-modal={p.panel ? true : undefined} aria-labelledby={headingId} hidden={!p.panel} className={"ui-sheet ui-sheet--right panel panel-" + p.panel} aria-label={titles[p.panel!]}>
         <div className="ui-sheet__head panel-heading">
           <div>
-            {p.panel === "account" && a && (
-              <span className="facility-code">
-                계정 창고 {a.number.toString().padStart(2, "0")}
-              </span>
-            )}
             <h2 id={headingId} className="ui-sheet__title" ref={heading} tabIndex={-1}>
               {titles[p.panel!]}
             </h2>
@@ -319,25 +317,14 @@ export function Panels(p: Props) {
                   </div>
                 </div>
               )}
-              <div className="account-stock">
-                <div>
-                  <span>제출 가능한 재고</span>
-                  <strong>
-                    {n(a.ready)}
-                    <small>개</small>
-                  </strong>
-                </div>
-                <Button variant="ghost"
-                  className="ui-button text-button"
-                  onClick={() => p.open("inventory")}
-                >
-                  창고 열기 <ArrowRight size={16} />
-                </Button>
-              </div>
-              <p className="stock-target">비축 목표 {n(a.target)}개</p>
-              <div className="account-next-submission"><CalendarDays size={18}/><span>다음 제출 예정</span><strong>{date(nextSubmission(s, a.id))}</strong></div>
-              {flow && <div className="account-flow-strip" aria-label="계정 물류 상태"><span><Package size={24}/><strong>{n(flow.ready)}</strong><small>재고</small></span><ChevronRight size={16}/><span><ShieldCheck size={24}/><strong>{n(flow.inspection)}</strong><small>심사</small></span><ChevronRight size={16}/><span><Image size={24}/><strong>{n(flow.archived)}</strong><small>승인·공개</small></span></div>}
-              {flow?.inspection ? <p className="review-deadline">심사 {expectedDateLabel(flow.reviewAt)}</p> : null}
+              {cycle && <section className="account-owner-cycle" aria-label="심사와 다음 할 일">
+                <button className={`cycle-review ${cycle.reviewCount > 0 ? "occupied" : "vacant"}`} onClick={() => { p.setInventory({ ...p.inventory, filter: "review", page: 0 }); p.open("inventory"); }}><ShieldCheck size={30}/><strong>{cycle.reviewLabel}</strong><ChevronRight size={18}/></button>
+                {cycle.expectedReviewLabel && cycle.reviewCount > 0 && <p className="cycle-expected">{cycle.expectedReviewLabel}</p>}
+                <button className="cycle-next" onClick={() => p.open("schedule")}><CalendarDays size={22}/><span><strong>{cycle.submissionPlanOn ? cycle.overviewLabel : cycle.submissionLabel}</strong><small>{cycle.nextLabel}</small></span><ChevronRight size={18}/></button>
+                {cycle.submissionPlanOn && <p className="cycle-plan">제출 {cycle.overviewPlanLabel} <span>(실행 예약 아님)</span></p>}
+                {cycle.detail && <p className="cycle-detail">{cycle.detail}</p>}
+                <div className="cycle-supplies"><Button variant="ghost" onClick={() => { p.setInventory({ ...p.inventory, filter: "ready", page: 0 }); p.open("inventory"); }}><Package size={18}/>제출할 그림 {n(cycle.ready)}</Button><Button variant="ghost" onClick={() => { p.setInventory({ ...p.inventory, filter: "archive", page: 0 }); p.open("inventory"); }}><Image size={18}/>승인·공개 {n(cycle.archived)}</Button></div>
+              </section>}
               <div className="account-observation-summary">
                 <span>심사 자리 <strong>{a.capacity ? `${n(a.capacity.pending)} / ${n(a.capacity.limit_count)}` : "미확인"}</strong></span>
                 <small>{a.capacity ? `${date(a.capacity.observed_at, true)} 관측${Date.now() - Date.parse(a.capacity.observed_at) > 86400000 ? " · 갱신 필요" : ""}` : "원본 작업기에서 확인 필요"}</small>
@@ -345,10 +332,10 @@ export function Panels(p: Props) {
               </div>
               {accountCommand && (
                 <div className={"command-progress " + accountCommand.status} role="status">
-                  <strong>{accountCommand.status === "queued" ? "재확인 지시 대기" : accountCommand.status === "failed" ? "재확인 지시 실패" : "재확인 지시 반영"}</strong>
+                  <strong>{accountCommandState?.label || "재확인 지시 기록"}</strong>
                   <span>{accountCommand.message || "기존 순서에 따라 작업기가 처리합니다."}</span>
                   <small>{date(accountCommand.updated_at || accountCommand.created_at, true)} · {accountCommand.status === "applied" ? "지시 반영 기록 · 실제 제출 완료와 별도" : "지시 처리 기록"}</small>
-                  {accountCommand.status === "applied" && <span>{a.lastVerifiedAt && Date.parse(a.lastVerifiedAt)>Date.parse(accountCommand.created_at) ? `지시 이후 계정 확인됨 · ${date(a.lastVerifiedAt,true)}` : "지시 이후 확인 성공 대기"}</span>}
+                  {accountCommandState?.detail && <span>{accountCommandState.detail}</span>}
                 </div>
               )}
               <details className="account-records history"><summary>확인 기록</summary><DescriptionList items={[
@@ -358,7 +345,7 @@ export function Panels(p: Props) {
                 ["최근 확인 시도", a.lastAttemptAt || a.checkedAt ? date(a.lastAttemptAt || a.checkedAt, true) : "미확인"],
               ]}/></details>
               <DescriptionList items={[
-                ["다음 확인", a.running ? "진행 중" : a.nextCheckAt && Date.parse(a.nextCheckAt) <= Date.now() ? "순회 대기" : date(a.nextCheckAt, true)],
+                ["다음 확인·재시도", cycle?.nextLabel || "미확인"],
                 ["예상 심사일", date(a.reviewOn)],
                 ["심사 안내", `${a.reviewDays}${a.reviewBasis === "business" ? "영업일" : "일"}`],
                 ...(a.reserved > 0 ? [["배정·중복·대기 제외", `${n(a.reserved)}개 제외`] as [string, ReactNode]] : []),
@@ -457,7 +444,7 @@ export function Panels(p: Props) {
               <label className="search">
                 <Search size={18} />
                 <Input className="ui-input"
-                  aria-label="재고 검색"
+                  aria-label="그림 검색"
                   placeholder="제목·키워드 검색"
                   value={query}
                   onChange={(e) => {
@@ -465,7 +452,8 @@ export function Panels(p: Props) {
                   }}
                 />
               </label>
-              <div className="ui-block-list__filters filter-tabs" role="group" aria-label="재고 상태"><ul className="ui-block-list__chips">
+              {filter === "review" && cycle && <p className="review-scope-note">{cycle.reviewLabel}</p>}
+              <div className="ui-block-list__filters filter-tabs" role="group" aria-label="그림 상태"><ul className="ui-block-list__chips">
                 {[
                   ["ready", "제출 가능"],
                   ["review", "심사 중"],
@@ -532,25 +520,18 @@ export function Panels(p: Props) {
           {p.panel === "schedule" && (
             <>
               <div className="scope-line"><span>{a ? `${accountLabel(a)}` : "모든 계정"}</span>{a && <Button variant="ghost" className="ui-button text-button" onClick={() => p.clearScope ? p.clearScope() : p.select("")}>전체 보기</Button>}</div>
-              <div className="split">
-                <span className="muted">한국 시간</span>
-                <Button variant="primary"
-                  className="ui-button compact"
-                  onClick={() => openSchedule()}
-                >
-                  <Plus size={16} />
-                  일정 추가
-                </Button>
-              </div>
-              <h3 className="section-title">내 지시</h3>
+              <h3 className="section-title">자동 확인·재시도</h3>
+              <div className="timeline next-checks">{scopedAccounts.map(account => ({ account, cycle: accountCycle(account, s, p.stale, { schedules: [] }) })).sort((x,y) => (x.account.nextCheckAt || "9999").localeCompare(y.account.nextCheckAt || "9999")).map(({account,cycle}) => <button className={`timeline-item next-check ${cycle.blocked ? "blocked" : ""}`} key={account.id} onClick={() => p.select(account.id)}><CalendarDays size={20}/><div><strong>{accountLabel(account)}</strong><span>{cycle.nextLabel}</span><small>{cycle.submissionLabel}</small></div><ChevronRight size={16}/></button>)}</div>
+              {submissionPlans.length > 0 && <section className="submission-plans"><h3 className="section-title">제출 계획</h3><div className="timeline">{submissionPlans.sort((x,y) => x.cycle.submissionPlanOn!.localeCompare(y.cycle.submissionPlanOn!)).map(({account,cycle}) => <button className="timeline-item" key={account.id} onClick={() => p.select(account.id)}><CalendarDays size={18}/><div><strong>{accountLabel(account)}</strong><span>{date(cycle.submissionPlanOn, /T/.test(cycle.submissionPlanOn!))} · 실행 예약 아님</span></div><ChevronRight size={16}/></button>)}</div></section>}
+              {(["recheck", "memo"] as const).filter(kind => schedules.some(v => v.kind === kind && !["done", "cancelled"].includes(v.status))).map(kind => <section key={kind} className="request-schedule-group"><h3 className="section-title">{kind === "recheck" ? "재확인 요청 예약" : "메모 · 직접 처리"}</h3>
               {schedules.filter(
-                (v) => !["done", "cancelled"].includes(v.status),
+                (v) => v.kind === kind && !["done", "cancelled"].includes(v.status),
               ).length === 0 ? (
-                <p className="muted schedule-empty">예약한 지시가 없습니다.</p>
+                <p className="muted schedule-empty">{kind === "recheck" ? "예약된 재확인 요청 없음" : "직접 처리할 메모 없음"}</p>
               ) : (
                 <div className="timeline">
                   {schedules
-                    .filter((v) => !["done", "cancelled"].includes(v.status))
+                    .filter((v) => v.kind === kind && !["done", "cancelled"].includes(v.status))
                     .sort((x,y) => Number(y.status === "failed") - Number(x.status === "failed") || x.due_at.localeCompare(y.due_at))
                     .map((v) => (
                       <div className="timeline-item" key={v.id}>
@@ -561,7 +542,7 @@ export function Panels(p: Props) {
                           </small>
                           <strong>{v.title}</strong>
                           <span>
-                            {v.kind === "memo" ? "직접 할 일" : "작업기 재확인"}
+                            {v.kind === "memo" ? "직접 할 일" : "재확인 요청 예약 · 제출 예약 아님"}
                             {v.status === "failed"
                               ? " · 처리 실패"
                               : v.status === "requested"
@@ -569,7 +550,7 @@ export function Panels(p: Props) {
                                 : ""}
                           </span>
                         </div>
-                        {v.status === "failed" && <div className="schedule-recovery"><p role="status">{v.command_message || "작업기에서 처리하지 못했습니다. 계정 상태를 확인하세요."}</p><Button variant="ghost" className="ui-button text-button" disabled={p.stale} onClick={() => openSchedule(v)}>다시 예약</Button><Button variant="ghost" className="ui-button text-button" onClick={() => updateSchedule(v.id,"cancelled")}>기록 닫기</Button></div>}
+                        {v.status === "failed" && <div className="schedule-recovery"><p role="status">{v.command_message || "작업기에서 처리하지 못했습니다. 계정 상태를 확인하세요."}</p><Button variant="ghost" className="ui-button text-button" disabled={p.stale} onClick={() => openSchedule(v)}>재확인 요청 다시 예약</Button><Button variant="ghost" className="ui-button text-button" onClick={() => updateSchedule(v.id,"cancelled")}>기록 닫기</Button></div>}
                         {v.status === "planned" && (
                           <div className="inline-actions">
                             {v.kind === "memo" && (
@@ -592,46 +573,8 @@ export function Panels(p: Props) {
                     ))}
                 </div>
               )}
-              <h3 className="section-title">다음 제출 예정 · 원본 계획</h3>
-              <div className="timeline">{accounts.filter(v => (!a || a.id === v.id) && nextSubmission(s,v.id)).sort((x,y) => (nextSubmission(s,x.id) || "").localeCompare(nextSubmission(s,y.id) || "")).map(v => <button className="timeline-item" key={v.id} onClick={() => p.select(v.id)}><CalendarDays size={18}/><div><strong>{accountLabel(v)}</strong><span>{date(nextSubmission(s,v.id))}</span></div><ChevronRight size={16}/></button>)}</div>
-              {!accounts.some(v => (!a || a.id === v.id) && nextSubmission(s,v.id)) && <p className="muted schedule-empty">다음 제출 예정 없음 · {a ? `${a.number}번 계정 창고` : `${accounts.length}개 계정 창고`}</p>}
-              <h3 className="section-title">실제 제출 · 예상 심사</h3>
-              <div className="timeline">
-                {[...s.calendar].filter(v=>!v.checked_on)
-                  .sort((x, y) => x.check_on.localeCompare(y.check_on))
-                  .filter((v) => !a || v.accountId === a.id)
-                  .map((v) => (
-                    <button
-                      className="timeline-item"
-                      key={v.id}
-                      onClick={() => p.select(v.accountId)}
-                    >
-                      <span
-                        className={
-                          "timeline-dot " + (v.checked_on ? "done" : "")
-                        }
-                      />
-                      <div>
-                        <small>
-                          {date(v.uploaded_on)} 제출 → {date(v.check_on)} 예상
-                        </small>
-                        <strong>
-                          {v.accountId}번 ·{" "}
-                          {accounts.find((x) => x.id === v.accountId)?.name}
-                        </strong>
-                        <span>
-                          {v.checked_on
-                            ? "확인 완료"
-                            : `${v.review_business_days}${v.review_day_basis === "business" ? "영업일" : "일"} · 심사 대기`}
-                        </span>
-                      </div>
-                      <ChevronRight size={16} />
-                    </button>
-                  ))}
-              </div>
-              {!s.calendar.some(v=>!v.checked_on && (!a || v.accountId === a.id)) && <p className="muted schedule-empty">진행 중인 제출·심사 기록이 없습니다.</p>}
-              {s.calendar.some(v=>v.checked_on && (!a || v.accountId === a.id)) && <details className="history"><summary>지난 제출·심사 기록</summary><div className="timeline">{[...s.calendar].filter(v=>v.checked_on && (!a || v.accountId === a.id)).sort((x,y)=>y.check_on.localeCompare(x.check_on)).map(v=><button className="timeline-item" key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot done"/><div><strong>{v.accountId}번 계정</strong><small>{date(v.uploaded_on)} 제출 · {date(v.checked_on)} 확인 완료</small></div><ChevronRight size={16}/></button>)}</div></details>}
-              {(historyRows.length > 0 || nextCursor) && <details className="history"><summary>완료·취소 기록{p.data.scheduleHistory ? ` · 전체 ${n(p.data.scheduleHistory.total)}건` : ""}</summary>{historyRows.map(v => <p key={v.id}><span>{v.account_id}번 · {v.title}<small>{date(v.due_at,true)}</small></span><span>{v.status === "done" ? "완료" : "취소"}</span></p>)}{nextCursor && <Button variant="outline" className="ui-button full" disabled={historyBusy} onClick={() => void loadHistory()}>{historyBusy ? "불러오는 중…" : "이전 기록 더 보기"}</Button>}</details>}
+              </section>)}
+              {(historyRows.length > 0 || nextCursor) && <details className="history"><summary>완료·취소 기록{p.data.scheduleHistory ? ` · 전체 ${n(p.data.scheduleHistory.total)}건` : ""}</summary>{historyRows.map(v => <p key={v.id}><span>{v.account_id}번 · {v.title}<small>{date(v.due_at,true)}</small></span><span>{v.status === "done" ? v.kind === "recheck" ? "요청 전달" : "완료" : "취소"}</span></p>)}{nextCursor && <Button variant="outline" className="ui-button full" disabled={historyBusy} onClick={() => void loadHistory()}>{historyBusy ? "불러오는 중…" : "이전 기록 더 보기"}</Button>}</details>}
 
             </>
           )}
@@ -741,19 +684,56 @@ export function Panels(p: Props) {
             </>
           )}
           {p.panel === "activity" && <>
-            <div className="split"><span className="muted">최근 {n(s.recent.length)}건 기준</span><Button variant="ghost" className="ui-button text-button" onClick={p.onAcknowledge}>여기까지 확인 <Check size={16}/></Button></div>
-            <div className="timeline">{[...s.recent].sort((x,y)=>y.recorded_at.localeCompare(x.recorded_at)).map(v => <button className={"timeline-item actual-event " + (Date.parse(v.recorded_at)>p.activitySince ? "unread" : "")} key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot"/><div><small>{date(v.recorded_at,true)} · {v.accountId}번</small><strong>{statuses[v.state] || "상태 변경"}</strong><span>{v.title}</span></div><ChevronRight size={16}/></button>)}</div>
-            {!s.recent.length && <Empty>기록된 변화가 없습니다.</Empty>}
+            <div className="scope-line"><span>{a ? accountLabel(a) : "모든 계정"}</span>{a && <Button variant="ghost" onClick={() => p.clearScope ? p.clearScope() : p.select("")}>전체 보기</Button>}</div>
+              <h3 className="section-title">실제 제출·심사 기록</h3>
+              <div className="timeline">
+                {[...s.calendar].filter(v=>!v.checked_on)
+                  .sort((x, y) => x.check_on.localeCompare(y.check_on))
+                  .filter((v) => !a || v.accountId === a.id)
+                  .map((v) => (
+                    <button
+                      className="timeline-item"
+                      key={v.id}
+                      onClick={() => p.select(v.accountId)}
+                    >
+                      <span
+                        className={
+                          "timeline-dot " + (v.checked_on ? "done" : "")
+                        }
+                      />
+                      <div>
+                        <small>
+                          {date(v.uploaded_on)} 제출 · {date(v.check_on)} 확인 예상
+                        </small>
+                        <strong>
+                          {v.accountId}번 ·{" "}
+                          {accounts.find((x) => x.id === v.accountId)?.name}
+                        </strong>
+                        <span>
+                          {v.checked_on
+                            ? "확인 완료"
+                            : `${v.review_business_days}${v.review_day_basis === "business" ? "영업일" : "일"} · 확인 기록 없음`}
+                        </span>
+                      </div>
+                      <ChevronRight size={16} />
+                    </button>
+                  ))}
+              </div>
+              {!s.calendar.some(v=>!v.checked_on && (!a || v.accountId === a.id)) && <p className="muted schedule-empty">연결된 제출·심사 기록이 없습니다.</p>}
+              {s.calendar.some(v=>v.checked_on && (!a || v.accountId === a.id)) && <details className="history"><summary>지난 제출·심사 기록</summary><div className="timeline">{[...s.calendar].filter(v=>v.checked_on && (!a || v.accountId === a.id)).sort((x,y)=>y.check_on.localeCompare(x.check_on)).map(v=><button className="timeline-item" key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot done"/><div><strong>{v.accountId}번 계정</strong><small>{date(v.uploaded_on)} 제출 · {date(v.checked_on)} 확인 완료</small></div><ChevronRight size={16}/></button>)}</div></details>}
+            <details className="history execution-history"><summary>실행 내역 · 최근 변화</summary><div className="split"><span className="muted">최근 {n(s.recent.length)}건</span><Button variant="ghost" className="ui-button text-button" onClick={p.onAcknowledge}>여기까지 확인 <Check size={16}/></Button></div>
+            <div className="timeline">{[...s.recent].filter(v => !a || v.accountId === a.id).sort((x,y)=>y.recorded_at.localeCompare(x.recorded_at)).map(v => <button className={"timeline-item actual-event " + (Date.parse(v.recorded_at)>p.activitySince ? "unread" : "")} key={v.id} onClick={()=>p.select(v.accountId)}><span className="timeline-dot"/><div><small>{date(v.recorded_at,true)} · {v.accountId}번</small><strong>{statuses[v.state] || "상태 변경"}</strong><span>{v.title}</span></div><ChevronRight size={16}/></button>)}</div>
+            {!s.recent.some(v => !a || v.accountId === a.id) && <Empty>연결된 실행 내역이 없습니다.</Empty>}</details>
           </>}
           {p.panel === "automation" && (
             <>
-              <Button variant="outline" className="ui-button full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</Button>
+              <div className="settings-destinations"><Button variant="outline" onClick={() => p.open("accounts")}><Layers3 size={20}/>계정 목록</Button><Button variant="outline" onClick={() => p.open("businesses")}><Factory size={20}/>사업 관리</Button><Button variant="outline" onClick={() => p.open("management")}><NotebookPen size={20}/>사업 계획·보고</Button><Button variant="outline" onClick={() => p.open("revenue")}><CalendarDays size={20}/>월 수익</Button></div>
               {s.automation.scan?.pending.length ? <div className="command-progress">
                 <strong>순차 확인 진행 중 · {s.automation.scan.pending.length}개 계정 남음</strong>
                 <span>{s.automation.scan.pending.map(number => `${number}번`).join(" → ")}</span>
                 <small>다음 계정 작업 가능 {date(s.automation.nextAt, true)} · 작업 종료 후 30분 간격</small>
-              </div> : s.automation.scan?.completedAt ? <p className="muted">요청한 순차 확인 완료 · {date(s.automation.scan.completedAt, true)}</p> : null}
-              {p.activeProcess && <div className="process-focus"><Factory size={18}/><strong>{({generation:"생산 공장",review:"제작 검수",stock:"계정 창고",submission:"제출 운송",inspection:"심사대",archive:"승인·공개 창고",revenue:"월별 수익"}[p.activeProcess])}</strong><span>{processState(p.activeProcess, s, p.stale).label}</span></div>}
+              </div> : s.automation.scan?.completedAt ? <p className="muted">재확인 요청 처리 마침 · {date(s.automation.scan.completedAt, true)}</p> : null}
+              {p.activeProcess && <div className="process-focus"><Factory size={18}/><strong>{({generation:"생산 공장",review:"제작 검수",stock:"제출할 그림",submission:"제출 운송",inspection:"심사대",archive:"승인·공개",revenue:"월별 수익"}[p.activeProcess])}</strong><span>{processState(p.activeProcess, s, p.stale).label}</span></div>}
               {p.activeProcess === "review" && <div className="process-focus"><strong>메타데이터</strong><span>{laneCondition(s.automation.lanes.metadata,s.automation.productionEnabled).label}</span></div>}
               <div className={"command-progress " + upload.tone}><strong>제출 작업기 · {upload.label}</strong><span>{upload.detail}</span><small>상태 관측 {date(s.automation.statusObservedAt || s.automation.lastPollAt,true)}</small></div>
               {[
@@ -762,8 +742,6 @@ export function Panels(p: Props) {
                   "이미지 제작",
                   s.automation.productionEnabled,
                   Factory,
-  Focus,
-  Minus,
                 ],
                 ["upload", "제출 · 심사 확인", s.automation.enabled, Send],
               ].map(([lane, label, enabled, Icon]) => {
@@ -832,9 +810,9 @@ export function Panels(p: Props) {
             <>
               <div className="island-tools">
                 <Button variant="outline" onClick={() => p.open("revenue")}><CalendarDays size={28}/> 월별 수익</Button>
-                <Button variant="outline" onClick={() => p.open("automation")}><Factory size={28}/> 운영실</Button>
+                <Button variant="outline" onClick={() => p.open("automation")}><Factory size={28}/> 자동화 설정</Button>
               </div>
-              <Button variant="outline" className="ui-button full" onClick={() => p.open("management")}><NotebookPen size={18}/> 운영 계획·보고</Button>
+              <Button variant="outline" className="ui-button full" onClick={() => p.open("management")}><NotebookPen size={18}/> 사업 계획·보고</Button>
               <button
                 className="business-row selected"
                 onClick={() => p.open("accounts")}
@@ -844,7 +822,7 @@ export function Panels(p: Props) {
                 </span>
                 <div>
                   <strong>미리캔버스</strong>
-                  <span>13개 계정 창고 · 연결됨</span>
+                  <span>13개 계정 · 제출·심사 연결됨</span>
                 </div>
                 <ChevronRight size={18} />
               </button>
@@ -886,11 +864,12 @@ export function Panels(p: Props) {
           {p.panel === "revenue" && <Finance accounts={accounts} initialYear={p.revenueYear} initialAccountId={a?.id || p.revenueAccountId || null} toast={(message: string) => p.toast(message)} onChanged={p.onRevenueChanged} onAccountChange={p.onRevenueAccountChange}/>}
           {p.panel === "management" && <Management businesses={p.data.businesses} toast={p.toast}/>}
         </div>
+        {p.panel === "schedule" && <div className="panel-actions panel-footer"><Button variant="outline" onClick={() => p.open("activity")}><History size={20}/>제출·심사 이력</Button><Button onClick={() => openSchedule()}><CalendarDays size={20}/>재확인 예약</Button></div>}
         {p.panel === "account" && a && (
           <div className="panel-actions panel-footer">
             <Button variant="outline" className="ui-button" onClick={() => openSchedule()}>
               <CalendarDays size={17} />
-              일정 추가
+              재확인 예약
             </Button>
             <Button variant="primary"
               className="ui-button"
@@ -904,7 +883,7 @@ export function Panels(p: Props) {
         )}
       </aside>
       {schedule && (
-        <Modal title="일정 추가" onClose={() => !busy && setSchedule(false)}>
+        <Modal title={draft.kind === "recheck" ? "재확인 요청 예약" : "메모 추가"} onClose={() => !busy && setSchedule(false)}>
           <form className="ui-form"
             onSubmit={async (e: FormEvent<HTMLFormElement>) => {
               e.preventDefault();
@@ -932,14 +911,14 @@ export function Panels(p: Props) {
             }}
           >
             <fieldset className="ui-form__set"><div className="ui-form__body">
-            <Select label="계정 창고" name="account" value={draft.account} onChange={e=>setDraft({...draft,account:e.target.value})} items={accounts.map(v => ({value:v.id,label:`${accountLabel(v)}`}))} />
+            <Select label="계정" name="account" value={draft.account} onChange={e=>setDraft({...draft,account:e.target.value})} items={accounts.map(v => ({value:v.id,label:`${accountLabel(v)}`}))} />
             <label className="ui-field">
               할 일
               <Input className="ui-input"
                 name="title"
                 value={draft.title}
                 onChange={e=>setDraft({...draft,title:e.target.value})}
-                placeholder="다음 제출분 20개 확인"
+                placeholder="확인할 내용을 입력"
                 required
                 maxLength={100}
               />
@@ -954,10 +933,9 @@ export function Panels(p: Props) {
                 onChange={e=>setDraft({...draft,due:e.target.value})}
               />
             </label>
-            <Select label="처리" name="kind" value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})} items={[{value:"memo",label:"직접 할 일"},{value:"recheck",label:"작업기에 계정 재확인 요청"}]} />
+            <Select label="처리" name="kind" value={draft.kind} onChange={e=>setDraft({...draft,kind:e.target.value})} items={[{value:"memo",label:"메모 · 직접 처리"},{value:"recheck",label:"계정 재확인 요청 예약"}]} />
             <p className="ui-field__hint form-help">
-              재확인은 예약 시각 이후 기존 운영 순서로 처리합니다. 실제 제출
-              완료와 구분됩니다.
+              이 기록은 제출을 실행하지 않습니다. 재확인 요청은 예약 시각 이후 기존 순서로 처리합니다.
             </p>
             {error && (
               <p role="alert" className="ui-field__error form-error">
@@ -965,7 +943,7 @@ export function Panels(p: Props) {
               </p>
             )}
             <Button variant="primary" type="submit" disabled={busy} className="ui-button full">
-              {busy ? "저장 중…" : "일정 저장"}
+              {busy ? "저장 중…" : draft.kind === "recheck" ? "재확인 요청 예약" : "메모 저장"}
             </Button>
             </div></fieldset>
           </form>
@@ -1073,7 +1051,7 @@ export function Panels(p: Props) {
           {p.data.previewFailures?.includes(activeAsset.id) && <Button variant="outline" className="ui-button full" disabled={p.stale || busy} onClick={async()=> { setBusy(true); try { await post("/previews",{ids:[activeAsset.id],retry:true}); await p.refresh(); p.toast("미리보기를 다시 요청했습니다.", "success"); } catch(e) {p.toast((e as Error).message, "error");} finally {setBusy(false);} }}>미리보기 다시 가져오기</Button>}
           {assetReason(activeAsset) && <p className="asset-reason">{assetReason(activeAsset)}</p>}
           <DescriptionList items={[
-            ["계정 창고", `${activeAsset.accountId}번`],
+            ["계정", `${activeAsset.accountId}번 계정`],
             ["상태", assetStatus(activeAsset)],
             ["계정 배정", activeAsset.owned ? "이 계정 소유" : "다른 계정 또는 미배정"],
           ]}/>

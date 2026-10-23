@@ -1,8 +1,44 @@
 import type { Page } from "@playwright/test";
+import { existsSync, readFileSync } from "node:fs";
 // @ts-expect-error The deployed Worker contract runs against a fresh in-memory D1 adapter.
 import { api } from "../worker/index.mjs";
 // @ts-expect-error SQLite adapter is isolated per test.
 import { database } from "./db.mjs";
+
+const ownerCycleSourcePath = new URL("../artifacts/owner-cycle/source-world.json", import.meta.url);
+export const hasPrivateOwnerCycleSource = process.env.BIZ_TEST_OWNER_CYCLE_FIXTURE !== "synthetic" && existsSync(ownerCycleSourcePath);
+function syntheticOwnerCycleSource() {
+  const date = new Date().toISOString();
+  const reviewDates = ["2026-10-26","2026-11-02","2026-11-03","2026-11-02","2026-10-30","2026-10-30","2026-10-30","2026-10-30","2026-11-02","2026-11-03","2026-11-03","2026-10-26","2026-10-26"];
+  const accounts = Array.from({ length: 13 }, (_, index) => {
+    const number = index + 1, blocked = [1, 6, 13].includes(number), vacant = [1, 13].includes(number);
+    return { id: String(number), number, name: `${number}번 계정`, style: "기본", account: `test-${number}`, email: null, browser: null,
+      bound: true, ready: 40, target: 300, phases: {}, counts: { submitted: vacant ? 0 : 20 }, inProgress: 0, reserved: 0, previewId: null,
+      reviewOn: reviewDates[index], reviewDays: 7, reviewBasis: "business",
+      capacity: { limit_count: 20, pending: vacant ? 0 : 20, observed_at: date },
+      status: blocked ? "blocked" : "review_scheduled",
+      message: number === 1 ? "현재 계정의 새 CSV 다운로드를 확인하지 못했습니다."
+        : number === 6 ? "한국어 표시로 전환할 언어 항목을 확인하지 못했습니다."
+        : number === 13 ? "현재 로그인 이메일이 대상 계정과 다릅니다." : "심사 확인 대기",
+      checkedAt: date, lastAttemptAt: date, lastVerifiedAt: null,
+      nextCheckAt: new Date(Date.now() + number * 60000).toISOString(), running: false };
+  });
+  const assets = accounts.flatMap(account => [
+    ...Array.from({ length: Number(account.id) === 1 || Number(account.id) === 13 ? 0 : 20 }, (_, i) => ({
+      id: `synthetic-${account.id}-submitted-${i + 1}`, title: `작품 ${i + 1}`, accountId: account.id, state: "submitted",
+      phase: "submitted", owned: true, eligible: false, keywords: [], updatedAt: date,
+    })),
+    ...Array.from({ length: 8 }, (_, i) => ({ id: `synthetic-${account.id}-ready-${i + 1}`, title: `준비 그림 ${i + 1}`,
+      accountId: account.id, state: "ready", phase: "ready", owned: true, eligible: true, keywords: [], updatedAt: date })),
+  ]);
+  return { snapshot: { version: 1, observedAt: date, receivedAt: date, accounts, assets, calendar: [], recent: [], automation: {
+    enabled: true, productionEnabled: true, runningAccount: null, lastRunAt: date, lastPollAt: date, nextAt: null, intervalSeconds: 1800,
+    statusObservedAt: date, runLockActive: false, pollIntervalSeconds: 60, lanes: {}, scan: { pending: [], requestedAt: null },
+  } }, schedules: [], scheduleHistory: [], commands: [], businesses: [], thumbnails: [], previewFailures: [] };
+}
+const ownerCycleSource = hasPrivateOwnerCycleSource
+  ? JSON.parse(readFileSync(ownerCycleSourcePath, "utf8"))
+  : syntheticOwnerCycleSource();
 
 // Kept as test-fixture aliases for management.e2e.ts, which imports index 1 to
 // preserve its historical setup order. The product no longer has districts.
@@ -59,6 +95,51 @@ export async function fixture(page: Page, options: { issue?: boolean; stale?: bo
   });
   await page.addInitScript(() => localStorage.setItem("biz-reduced", "true"));
   return { DB, baseline, snapshot };
+}
+
+/** Preserve the captured source-world business state; only the DB receive timestamp is refreshed. */
+export async function ownerCycleFixture(page: Page, options: {
+  stale?: boolean;
+  mutateSnapshot?: (snapshot: any) => void;
+  schedules?: any[];
+} = {}) {
+  const source = structuredClone(ownerCycleSource), snapshot = source.snapshot;
+  const DB = database();
+  const capturedAt = options.stale ? "2020-01-01T00:00:00.000Z" : new Date().toISOString();
+  snapshot.receivedAt = capturedAt;
+  options.mutateSnapshot?.(snapshot);
+  await DB.prepare("INSERT INTO snapshots VALUES(?,?,?)")
+    .bind("miricanvas", JSON.stringify(snapshot), capturedAt).run();
+  for (const schedule of [...source.schedules, ...(options.schedules || [])]) {
+    await DB.prepare("INSERT INTO schedules(id,account_id,title,due_at,kind,status,created_at) VALUES(?,?,?,?,?,?,?)")
+      .bind(schedule.id, schedule.account_id, schedule.title, schedule.due_at, schedule.kind, schedule.status, schedule.created_at).run();
+  }
+  for (const command of source.commands) {
+    await DB.prepare("INSERT INTO commands(id,action,payload,status,message,created_at,updated_at) VALUES(?,?,?,?,?,?,?)")
+      .bind(command.id, command.action, JSON.stringify(command.payload), command.status, command.message, command.created_at, command.updated_at).run();
+  }
+  for (const business of source.businesses) {
+    await DB.prepare("INSERT INTO businesses(id,name,kind,status,note) VALUES(?,?,?,?,?)")
+      .bind(business.id, business.name, business.kind, business.status || "unconnected", business.note || "").run();
+  }
+
+  const env = { DB, LOCAL_MODE: true, BRIDGE_TOKEN: "game-test-isolated" };
+  await page.route("**/api/**", async route => {
+    const request = route.request(), url = new URL(request.url());
+    if (url.pathname.startsWith("/api/thumbnail/")) return route.continue();
+    const headers = new Headers(request.headers()); headers.set("Origin", url.origin);
+    const response = await api(new Request(request.url(), {
+      method: request.method(), headers,
+      body: request.method() === "GET" ? undefined : request.postDataBuffer(),
+    }), env);
+    if (url.pathname === "/api/world") {
+      const data = await response.json(); data.thumbnails = source.thumbnails;
+      return route.fulfill({ status: response.status, contentType: "application/json", body: JSON.stringify(data) });
+    }
+    return route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
+  });
+  await page.addInitScript(() => localStorage.setItem("biz-reduced", "true"));
+  return { DB, source: ownerCycleSource, snapshot };
 }
 
 export async function enter(page: Page) {

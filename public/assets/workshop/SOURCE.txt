@@ -1,0 +1,5 @@
+BLUEKITE WORKS 프로젝트 전용 자체 제작 3D 소품.
+제작 코드: scripts/pack-workshop-assets.mjs
+외부 3D 모형·이미지·텍스처를 포함하지 않음.
+시계 기본 바늘은 예시이며 업무 완료 시각을 보증하지 않음.
+artwork-surface는 운영 시 해당 계정의 실제 썸네일로 교체함.

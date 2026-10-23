@@ -4,16 +4,17 @@ import { Button, Input } from "./design-system/components";
 import { retryWorldModule } from "./world-loader";
 import { Panels } from "./ui/Panels";
 import { IconButton, Modal } from "./ui/Primitives";
-import { date, n, isIssue, isStale, laneCondition, normalizedSnapshot, uploadCondition, severity, status, post, request, outstandingFailures, nextSubmission } from "./data";
+import { date, n, isIssue, isStale, laneCondition, normalizedSnapshot, uploadCondition, status, post, request, outstandingFailures } from "./data";
 import type { Layer, Panel, WorldData } from "./types";
 import type { RevenueLedger } from "./finance-types";
 import type { WorldHandle } from "./world/World";
 import { processState, commandObservation } from "./game-state";
-import { accountFlow, flowTotals } from "./operations-state";
+import { flowTotals } from "./operations-state";
+import { accountCycle } from "./owner-cycle";
 
 const InitialWorld = lazy(() => import("./world/World"));
 type Process = "generation" | "review" | "stock" | "submission" | "inspection" | "archive" | "revenue";
-const processNames: Record<Process, string> = { generation: "생산 공장", review: "제작 검수", stock: "13개 계정 창고", submission: "제출 운송", inspection: "심사대", archive: "승인·공개 창고", revenue: "월별 수익" };
+const processNames: Record<Process, string> = { generation: "생산 공장", review: "제작 검수", stock: "제출할 그림", submission: "제출 운송", inspection: "심사대", archive: "승인·공개", revenue: "월별 수익" };
 class WorldBoundary extends Component<{ children: ReactNode; fallback: ReactNode }, { failed: boolean }> {
   state = { failed: false };
   static getDerivedStateFromError() { return { failed: true }; }
@@ -81,7 +82,7 @@ export default function App() {
   const open = (next: Panel) => { setPanel(next); };
   const s = data?.snapshot, stale = isStale(s || null) || !!error;
   const account = s?.accounts.find(a => a.id === selected) || null;
-  const accountState = account && s ? accountFlow(account, s, stale) : null;
+  const cycle = account && s ? accountCycle(account, s, stale, { schedules: data?.schedules }) : null;
   const trayOpen = !!(account || activeProcess);
   useLayoutEffect(() => {
     const tray = document.querySelector<HTMLElement>(".game-tray");
@@ -104,11 +105,22 @@ export default function App() {
     window.addEventListener("resize", measure);
     return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
   }, [trayOpen, panel, ready, !!s]);
+  const rememberAccountFocus = (id: string) => { lastFocus.current = [...document.querySelectorAll<HTMLButtonElement>("[data-account]")].find(button => button.dataset.account === id) || null; };
   const select = (id: string) => {
+    rememberAccountFocus(id);
     setPanel(null); setActiveProcess(null); setSelected(id || null); setInventory(v => ({ ...v, page: 0 }));
     if (id) { setRevenueAccountId(id); world.current?.focus(id); }
   };
+  const inspectAccount = (id: string, area: "review" | "schedule" | "stock" | "archive" | "account") => {
+    rememberAccountFocus(id);
+    setSelected(id); setRevenueAccountId(id); setActiveProcess(null);
+    if (["review", "stock", "archive"].includes(area)) {
+      setInventory(v => ({ ...v, filter: area === "review" ? "review" : area === "archive" ? "archive" : "ready", page: 0 }));
+      setPanel("inventory");
+    } else setPanel(area === "schedule" ? "schedule" : "account");
+  };
   const inspectProcess = (key: Process) => {
+    lastFocus.current = document.querySelector<HTMLButtonElement>(`[data-process="${key}"]`) || lastFocus.current;
     setActiveProcess(key); world.current?.focusProcess(key);
     if (key === "revenue") { setPanel("revenue"); return; }
     if (account && ["stock", "inspection", "archive"].includes(key)) {
@@ -140,7 +152,7 @@ export default function App() {
   const productionPending = !!data?.commands.some(c => c.action === "automation" && c.payload.lane === "production" && c.status === "queued");
   const recheck = () => {
     if (!account || stale || waiting) return;
-    setCommandError(""); setConfirm({ id: crypto.randomUUID(), action: "recheck", payload: { accountId: account.id }, title: "계정 재확인", description: `${account.number}번 계정. 기존 순서와 30분 간격에 따라 확인합니다. 로그인은 ${account.browser || "지정"} 브라우저에서 먼저 마쳐 주세요.` });
+    setCommandError(""); setConfirm({ id: crypto.randomUUID(), action: "recheck", payload: { accountId: account.id }, title: "계정 재확인", description: `${account.number}번 계정 재확인을 요청합니다. ${cycle?.blocked ? "표시된 원인을 먼저 해결하세요. " : ""}실제 확인은 기존 간격·순서를 따릅니다. 요청 반영은 플랫폼 조회·제출 완료와 별개입니다.` });
   };
   const toggleProduction = () => {
     if (!s || stale || productionPending) return;
@@ -161,10 +173,10 @@ export default function App() {
   return <div className={`ds app game-shell ${compactText ? "compact-text" : ""} ${panel ? "has-panel" : ""} ${trayOpen ? "has-tray" : ""} ${reduced ? "reduced-motion" : ""}`} data-style="main" onClickCapture={e => { if (!panel) { const button = (e.target as Element).closest<HTMLButtonElement>("button"); if (button && !button.closest("dialog")) lastFocus.current = button; } }}>
     <a href="#main-tools" className="skip-link">관제 도구로 이동</a>
     {s && data && total ? <>
-      <main className="world-stage" aria-busy={!ready} aria-label="미리캔버스 산업 단지" inert={!!panel}>
-        <WorldBoundary key={worldAttempt} fallback={<div className="world-recovery"><h2>계정 창고 선택</h2><p>3D 화면을 다시 열거나 목록에서 관리할 수 있습니다.</p><Button onClick={retryWorld}><RefreshCw size={20}/>3D 다시 열기</Button><div className="fallback-accounts">{s.accounts.map(a => <button key={a.id} onClick={() => select(a.id)}><b>{a.number}번 계정</b><span>{status(a)}</span></button>)}</div></div>}>
-          <Suspense fallback={<div className="world-loading"><img src="/brand/symbol.svg" alt=""/><span>산업 단지를 여는 중</span></div>}>
-            <World ref={world} snapshot={s} selected={selected} layer={layer} reduced={reduced} stale={stale} onSelect={select} onReady={onReady} commands={data.commands} thumbnails={data.thumbnails} activeProcess={activeProcess} onInspectProcess={inspectProcess} trayOpen={trayOpen && !panel} safeTop={safeTop} safeBottom={safeBottom} revenue={revenue} revenueAccountId={revenueAccountId} revenueError={revenueError}/>
+      <main className="world-stage" aria-busy={!ready} aria-label="미리캔버스 13개 계정 제출·심사 공간" inert={!!panel}>
+        <WorldBoundary key={worldAttempt} fallback={<div className="world-recovery"><h2>계정 상태 선택</h2><p>3D 화면을 다시 열거나 목록에서 관리할 수 있습니다.</p><Button onClick={retryWorld}><RefreshCw size={20}/>3D 다시 열기</Button><div className="fallback-accounts">{s.accounts.map(a => <button key={a.id} onClick={() => select(a.id)}><b>{a.number}번 계정</b><span>{status(a)}</span></button>)}</div></div>}>
+          <Suspense fallback={<div className="world-loading"><img src="/brand/symbol.svg" alt=""/><span>제작소를 여는 중</span></div>}>
+            <World ref={world} snapshot={s} selected={selected} layer={layer} reduced={reduced} stale={stale} onSelect={select} onReady={onReady} commands={data.commands} thumbnails={data.thumbnails} activeProcess={activeProcess} onInspectProcess={inspectProcess} trayOpen={trayOpen && !panel} safeTop={safeTop} safeBottom={safeBottom} schedules={data.schedules} onInspectAccount={inspectAccount} revenue={revenue} revenueAccountId={revenueAccountId} revenueError={revenueError}/>
           </Suspense>
         </WorldBoundary>
       </main>
@@ -175,30 +187,35 @@ export default function App() {
           <button className={`incident-control ${issueCount || stale ? "has-issue" : ""}`} onClick={showMission} aria-label={`확인할 일 ${stale ? "연결 확인" : issueCount + "건"}`}><TriangleAlert size={22}/><strong>{stale ? "!" : issueCount}</strong></button>
         </div>
       </header>
-      <h1 className="sr-only">미리캔버스 · 13개 계정 산업 단지</h1>
+      <h1 className="sr-only">미리캔버스 · 13개 계정 제출·심사</h1>
       {stale && <button className="mission stale" inert={!!panel} onClick={showMission}><TriangleAlert size={20}/><span>연결 확인 · {date(s.receivedAt, true)}</span><ChevronRight size={16}/></button>}
 
 
       {trayOpen && <section className={`game-tray ${account && isIssue(account) ? "warning" : ""}`} aria-label="시설 행동" inert={!!panel}>
-        <div className="tray-heading"><div><h2>{account?.name || processNames[activeProcess!]}</h2></div><IconButton label="시설 선택 닫기" onClick={dismissTray}><X size={20}/></IconButton></div>
+        <div className="tray-heading"><div>{cycle && <i aria-hidden="true" className={`signal ${cycle.stale ? "unknown" : cycle.blocked ? "warning" : cycle.tone === "reviewing" ? "active" : "normal"}`}/>}<h2>{account?.name || processNames[activeProcess!]}</h2></div><IconButton label="시설 선택 닫기" onClick={dismissTray}><X size={20}/></IconButton></div>
         <div className="tray-content">{account ? <>
-          <div className="tray-status" title={observation?.detail}><i className={`signal ${stale ? "unknown" : isIssue(account) ? severity(account) : observation?.tone || severity(account)}`}/><span>{stale ? `연결 확인 · 수신 ${date(s.receivedAt, true)}` : observation ? `${isIssue(account) ? status(account) + " · " : ""}${observation.label}` : status(account)}</span><button onClick={() => open("account")}>상세 <ChevronRight size={14}/></button></div>
-          {accountState && <div className="tray-stages" aria-label="계정별 물류 수량"><button aria-label={`${account.number}번 계정 재고 ${n(accountState.ready)}개 보기`} onClick={() => showInventory("ready")}><Package size={22}/><strong>{n(accountState.ready)}</strong><small>재고</small></button><button aria-label={`${account.number}번 계정 심사 ${n(accountState.inspection)}개 보기`} onClick={() => showInventory("review")}><ScanLine size={22}/><strong>{n(accountState.inspection)}</strong><small>심사</small></button><button aria-label={`${account.number}번 계정 승인·공개 ${n(accountState.archived)}개 보기`} onClick={() => showInventory("archive")}><Package size={22}/><strong>{n(accountState.archived)}</strong><small><span className="tray-label-full">승인·공개</span><span className="tray-label-short">보관</span></small></button></div>}
-          {accountState && accountState.inspection > 0 && <div className="tray-review-date"><ScanLine size={16}/><span>심사 {accountState.reviewLabel}</span></div>}
-          <button className="tray-next" onClick={() => open("schedule")}><CalendarDays size={20}/><span>{nextSubmission(s, account.id) ? `${date(nextSubmission(s, account.id))} 제출 예정` : "제출 일정"}</span><ChevronRight size={14}/></button>
-
+          {cycle && <>
+            <button className={`cycle-review ${cycle.reviewCount > 0 ? "occupied" : "vacant"}`} onClick={() => showInventory("review")}><ScanLine size={30}/><strong>{cycle.reviewLabel}</strong><ChevronRight size={18}/></button>
+            {cycle.expectedReviewLabel && cycle.reviewCount > 0 && !cycle.blocked && <p className="cycle-expected">{cycle.expectedReviewLabel}</p>}
+            {cycle.blocked && <div className="cycle-blocker" role="status"><TriangleAlert size={20}/><span>{cycle.stale ? `마지막 확인: ${cycle.blocker}` : cycle.blocker}</span></div>}
+            <button className={`cycle-next ${cycle.blocked ? "blocked" : ""}`} aria-label={`${cycle.submissionPlanOn ? cycle.overviewLabel : cycle.submissionLabel}. ${cycle.nextLabel}`} onClick={() => open("schedule")}><CalendarDays size={22}/><span><strong>{cycle.submissionPlanOn ? cycle.overviewLabel : cycle.submissionLabel}</strong><small>{cycle.nextLabel}</small></span><ChevronRight size={18}/></button>
+            {cycle.submissionPlanOn && <p className="cycle-plan">제출 {cycle.overviewPlanLabel} <span>(실행 예약 아님)</span></p>}
+            {cycle.expectedReviewLabel && cycle.reviewCount > 0 && cycle.blocked && <p className="cycle-expected">{cycle.expectedReviewLabel}</p>}
+            {observation && <p className="cycle-command">{observation.label}</p>}
+            <div className="cycle-supplies"><button onClick={() => showInventory("ready")}><Package size={18}/><span>제출할 그림 {n(cycle.ready)}</span></button><button onClick={() => showInventory("archive")}><Check size={18}/><span>승인·공개 {n(cycle.archived)}</span></button><button aria-label={`${account.number}번 계정 상세와 복구`} onClick={() => open("account")}><Info size={18}/></button></div>
+          </>}
         </> : <>
           <div className="tray-status"><i className={`signal ${processHealth.tone}`}/><span>{(stale ? `연결 확인 · 수신 ${date(s.receivedAt, true)}` : processHealth.label)}</span></div>
-          <div className="tray-process-summary">{activeProcess === "generation" ? <><Factory size={30}/><strong>{n(total.progress)}</strong><span>제작 중</span></> : activeProcess === "review" ? <><ScanLine size={30}/><strong>{n(s.assets.filter(a => a.phase === "quarantined").length)}</strong><span>보류·확인</span></> : activeProcess === "stock" ? <><Package size={30}/><strong>{n(total.ready)}</strong><span>/ 비축 목표 {n(total.target)}</span></> : activeProcess === "inspection" ? <><ScanLine size={30}/><strong>{n(total.review)}</strong><span>심사 중 · 실제 관측</span></> : activeProcess === "archive" ? <><Package size={30}/><strong>{n(total.archived)}</strong><span>승인·공개 · 실제 관측</span></> : activeProcess === "revenue" ? <><CalendarDays size={30}/><span>계정별 12개월 수익 기록</span></> : <><CalendarDays size={30}/><strong>{data.schedules.filter(v => v.status === "planned").length}</strong><span>예약된 일정</span></>}</div>
+          <div className="tray-process-summary">{activeProcess === "generation" ? <><Factory size={30}/><strong>{n(total.progress)}</strong><span>제작 중</span></> : activeProcess === "review" ? <><ScanLine size={30}/><strong>{n(s.assets.filter(a => a.phase === "quarantined").length)}</strong><span>보류·확인</span></> : activeProcess === "stock" ? <><Package size={30}/><strong>{n(total.ready)}</strong><span>/ 비축 목표 {n(total.target)}</span></> : activeProcess === "inspection" ? <><ScanLine size={30}/><strong>{n(total.review)}</strong><span>심사 중 · 실제 관측</span></> : activeProcess === "archive" ? <><Package size={30}/><strong>{n(total.archived)}</strong><span>승인·공개 · 실제 관측</span></> : activeProcess === "revenue" ? <><CalendarDays size={30}/><span>계정별 12개월 수익 기록</span></> : <><CalendarDays size={30}/><strong>{data.schedules.filter(v => v.status === "planned").length}</strong><span>메모·재확인 요청 일정</span></>}</div>
 
         </>}</div>
-        {account ? <div className="tray-actions"><Button variant="outline" onClick={() => showInventory()}>창고 열기</Button><Button disabled={stale || waiting || sending} onClick={recheck}><RefreshCw size={19}/>{waiting ? "지시 대기" : "재확인"}</Button></div> : <div className="tray-actions">{activeProcess === "generation" ? <><Button variant="outline" onClick={() => open("automation")}>운영 확인</Button><Button disabled={stale || productionPending} onClick={toggleProduction}>{productionPending ? "지시 대기" : s.automation.productionEnabled ? "생산 멈춤" : "생산 재개"}</Button></> : activeProcess === "review" ? <><Button variant="outline" onClick={() => open("automation")}>검수 상태</Button><Button onClick={() => showInventory("hold")}>검수함 열기</Button></> : activeProcess === "stock" ? <><Button variant="outline" onClick={() => { setSelected(null); open("accounts"); }}>계정 선택</Button><Button onClick={() => showInventory()}>전체 창고 열기</Button></> : activeProcess === "inspection" ? <><Button variant="outline" onClick={() => open("schedule")}>심사 일정</Button><Button onClick={() => showInventory("review")}>심사 중 보기</Button></> : activeProcess === "archive" ? <><Button variant="outline" onClick={() => showInventory("approved")}>승인 보관</Button><Button onClick={() => showInventory("published")}>공개 보관</Button></> : activeProcess === "revenue" ? <><Button variant="outline" onClick={() => open("accounts")}>계정 선택</Button><Button onClick={() => open("revenue")}>수익 기록부</Button></> : <><Button variant="outline" onClick={() => open("automation")}>운송 상태</Button><Button onClick={() => open("schedule")}>제출 일정</Button></>}</div>}
+        {account ? <div className="tray-actions owner-actions"><Button variant="outline" disabled={stale || waiting || sending} onClick={recheck}><RefreshCw size={19}/>{waiting ? "지시 대기" : "계정 재확인"}</Button><Button disabled={sending || stale && cycle?.action !== "automation"} onClick={() => { if (!cycle) return; if (cycle.action === "review") showInventory("review"); else open(cycle.action === "schedule" ? "schedule" : cycle.action === "automation" ? "automation" : "account"); }}>{cycle?.actionLabel || "계정 상태 확인"}</Button></div> : <div className="tray-actions">{activeProcess === "generation" ? <><Button variant="outline" onClick={() => open("automation")}>자동화 설정</Button><Button disabled={stale || productionPending} onClick={toggleProduction}>{productionPending ? "지시 대기" : s.automation.productionEnabled ? "생산 멈춤" : "생산 재개"}</Button></> : activeProcess === "review" ? <><Button variant="outline" onClick={() => open("automation")}>검수 상태</Button><Button onClick={() => showInventory("hold")}>검수함 열기</Button></> : activeProcess === "stock" ? <><Button variant="outline" onClick={() => { setSelected(null); open("accounts"); }}>계정 선택</Button><Button onClick={() => showInventory()}>제출할 그림</Button></> : activeProcess === "inspection" ? <><Button variant="outline" onClick={() => open("schedule")}>다음 일정</Button><Button onClick={() => showInventory("review")}>심사 중 보기</Button></> : activeProcess === "archive" ? <><Button variant="outline" onClick={() => showInventory("approved")}>승인 보관</Button><Button onClick={() => showInventory("published")}>공개 보관</Button></> : activeProcess === "revenue" ? <><Button variant="outline" onClick={() => open("accounts")}>계정 선택</Button><Button onClick={() => open("revenue")}>수익 기록부</Button></> : <><Button variant="outline" onClick={() => open("automation")}>제출 자동화</Button><Button onClick={() => open("schedule")}>다음 일정</Button></>}</div>}
       </section>}
       <nav id="main-tools" className="command-dock" tabIndex={-1} hidden={trayOpen} aria-label="관제 도구" inert={!!panel || trayOpen}>
         <button onClick={() => { dismissTray(); world.current?.reset(); }}><Focus size={26}/><span>전체 보기</span></button>
-        <button onClick={() => { setSelected(null); open("accounts"); }}><Package size={26}/><span>13개 계정</span></button>
-        <button onClick={() => open("activity")}><CalendarDays size={26}/><span>작업 기록</span></button>
-        <button onClick={() => open("businesses")}><Settings2 size={26}/><span>운영실</span></button>
+        <button onClick={() => { setSelected(null); open("schedule"); }}><CalendarDays size={26}/><span>다음 일정</span></button>
+        <button onClick={() => { setSelected(null); open("activity"); }}><ScanLine size={26}/><span>제출·심사 이력</span></button>
+        <button onClick={() => open("automation")}><Settings2 size={26}/><span>자동화 설정</span></button>
       </nav>
       {panel && <button className="panel-backdrop" aria-label="단지로 돌아가기" onClick={close}/>}
       <Panels panel={panel} data={data} selected={account} stale={stale} close={close} select={select} open={setPanel} refresh={refresh} toast={notify} reduced={reduced} setReduced={changeReduced} inventory={inventory} setInventory={setInventory} activitySince={activitySince} onAcknowledge={() => { const now = Date.now(); setActivitySince(now); localStorage.setItem("biz-activity-seen", String(now)); }} activeProcess={activeProcess} clearScope={() => setSelected(null)} viewControls={{ reset: () => { close(); dismissTray(); }, zoom: delta => { close(); setSelected(null); setActiveProcess(null); requestAnimationFrame(() => requestAnimationFrame(() => world.current?.zoom(delta))); } }} onRevenueChanged={revenueChanged} onRevenueAccountChange={setRevenueAccountId} revenueYear={revenue?.year ?? revenueYear.current} revenueAccountId={revenueAccountId} canLogout={!localMode} logout={async () => { await post("/logout", {}); setData(null); setPanel(null); setAuth(false); }}/>
