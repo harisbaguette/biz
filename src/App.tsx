@@ -1,5 +1,5 @@
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode, type FormEvent } from "react";
-import { ArrowRight, CalendarDays, ChevronRight, Check, Factory, Focus, Info, KeyRound, Package, RefreshCw, ScanLine, Settings2, TriangleAlert, X } from "./ui/Icons";
+import { ArrowRight, CalendarDays, ChevronLeft, ChevronRight, Check, Factory, Focus, Info, KeyRound, Package, RefreshCw, ScanLine, Settings2, TriangleAlert, X } from "./ui/Icons";
 import { Button, Input } from "./design-system/components";
 import { retryWorldModule } from "./world-loader";
 import { Panels } from "./ui/Panels";
@@ -11,6 +11,8 @@ import type { WorldHandle } from "./world/World";
 import { processState, commandObservation } from "./game-state";
 import { flowTotals } from "./operations-state";
 import { accountCycle } from "./owner-cycle";
+import { shortcutFor } from "./shortcuts";
+import { ShortcutHelp } from "./ui/ShortcutHelp";
 
 const InitialWorld = lazy(() => import("./world/World"));
 type Process = "generation" | "review" | "stock" | "submission" | "inspection" | "archive" | "revenue";
@@ -34,6 +36,8 @@ export default function App() {
   const [localMode, setLocalMode] = useState(true), [refreshing, setRefreshing] = useState(false);
   const [safeTop, setSafeTop] = useState(68), [safeBottom, setSafeBottom] = useState(84);
   const [compactText, setCompactText] = useState(false);
+  const [shortcutHelp, setShortcutHelp] = useState(false);
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(() => localStorage.getItem("biz-shortcuts") !== "false");
   const [activitySince, setActivitySince] = useState(() => Number(localStorage.getItem("biz-activity-seen")) || Date.now() - 86400000);
   const [reduced, setReduced] = useState(() => localStorage.getItem("biz-reduced") === "true" || matchMedia("(prefers-reduced-motion: reduce)").matches);
   const [toast, setToast] = useState<{ message: string; tone: "success" | "error" | "info" } | null>(null);
@@ -129,11 +133,45 @@ export default function App() {
     }
     setPanel(null); setSelected(null);
   };
-  const dismissTray = () => { setSelected(null); setActiveProcess(null); world.current?.reset(); };
+  const dismissTray = () => {
+    const previous = selected;
+    setSelected(null); setActiveProcess(null); world.current?.reset();
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const target = [...document.querySelectorAll<HTMLButtonElement>("[data-account]")].find(button => button.dataset.account === previous);
+      (target || document.querySelector<HTMLButtonElement>(".brand"))?.focus({ preventScroll: true });
+    }));
+  };
+  const cycleAccount = (direction: number) => {
+    const accounts = [...(s?.accounts || [])].sort((a, b) => a.number - b.number);
+    if (!accounts.length) return;
+    const index = accounts.findIndex(a => a.id === selected);
+    select(accounts[index < 0 ? direction > 0 ? 0 : accounts.length - 1 : (index + direction + accounts.length) % accounts.length].id);
+  };
   useEffect(() => {
-    const key = (e: KeyboardEvent) => { if (e.key !== "Escape" || document.querySelector("dialog[open]")) return; if (panel) close(); else { setSelected(null); setActiveProcess(null); world.current?.reset(); } };
+    const key = (e: KeyboardEvent) => {
+      if (!auth || !s || document.querySelector("dialog[open]")) return;
+      const shortcut = shortcutFor(e, shortcutsEnabled);
+      if (!shortcut || panel && shortcut.action !== "close" && shortcut.action !== "help") return;
+      e.preventDefault();
+      if (shortcut.action === "close") { if (panel) close(); else dismissTray(); }
+      else if (shortcut.action === "help") setShortcutHelp(true);
+      else if (shortcut.action === "overview") dismissTray();
+      else if (shortcut.action === "account") { const next = s.accounts.find(a => a.number === shortcut.value); if (next) select(next.id); }
+      else if (shortcut.action === "cycle") cycleAccount(shortcut.value);
+      else if (shortcut.action === "zoom") world.current?.zoom(shortcut.value);
+      else if (shortcut.action === "pan") world.current?.pan(shortcut.x, shortcut.y);
+      else if (shortcut.action === "refresh") { void refresh(); void refreshRevenue(); }
+      else {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && active !== document.body) lastFocus.current = active;
+        open(shortcut.action);
+      }
+      if (shortcut.action === "account" || shortcut.action === "cycle") {
+        requestAnimationFrame(() => document.querySelector<HTMLElement>(".tray-heading h2")?.focus({ preventScroll: true }));
+      }
+    };
     window.addEventListener("keydown", key); return () => window.removeEventListener("keydown", key);
-  }, [panel, close]);
+  });
   const flows = s ? flowTotals(s) : null;
   const total = s && flows ? {
     ready: s.accounts.reduce((sum, a) => sum + a.ready, 0),
@@ -185,6 +223,7 @@ export default function App() {
           <button className="brand" aria-label="13개 계정 전체 보기" onClick={() => { dismissTray(); close(); }}><img src="/brand/symbol.svg" alt=""/><img className="brand-wordmark" src="/brand/wordmark.svg" alt="BLUEKITE WORKS"/></button>
           <button className={`connection ${stale ? "offline" : ""}`} aria-label={stale ? "작업기 연결 확인" : "상태 수신"} title={`마지막 수신 ${date(s.receivedAt, true)}`} onClick={() => open("automation")}><i className={`signal ${stale ? "unknown" : "active"}`}/><span>{stale ? "연결 확인" : "연결됨"}</span></button>
           <button className={`incident-control ${issueCount || stale ? "has-issue" : ""}`} onClick={showMission} aria-label={`확인할 일 ${stale ? "연결 확인" : issueCount + "건"}`}><TriangleAlert size={22}/><strong>{stale ? "!" : issueCount}</strong></button>
+          <IconButton className="shortcut-help-button" label="단축키·조작 안내" aria-keyshortcuts={shortcutsEnabled ? "Shift+/" : undefined} onClick={event => { event.currentTarget.focus({ preventScroll: true }); setShortcutHelp(true); }}><Info size={22}/></IconButton>
         </div>
       </header>
       <h1 className="sr-only">미리캔버스 · 13개 계정 제출·심사</h1>
@@ -192,7 +231,7 @@ export default function App() {
 
 
       {trayOpen && <section className={`game-tray ${account && isIssue(account) ? "warning" : ""}`} aria-label="시설 행동" inert={!!panel}>
-        <div className="tray-heading"><div>{cycle && <i aria-hidden="true" className={`signal ${cycle.stale ? "unknown" : cycle.blocked ? "warning" : cycle.tone === "reviewing" ? "active" : "normal"}`}/>}<h2>{account?.name || processNames[activeProcess!]}</h2></div><IconButton label="시설 선택 닫기" onClick={dismissTray}><X size={20}/></IconButton></div>
+        <div className="tray-heading"><div>{cycle && <i aria-hidden="true" className={`signal ${cycle.stale ? "unknown" : cycle.blocked ? "warning" : cycle.tone === "reviewing" ? "active" : "normal"}`}/>}<h2 tabIndex={-1} aria-live="polite">{account?.name || processNames[activeProcess!]}</h2></div><div className="tray-navigation">{account && <><IconButton label="이전 계정" aria-keyshortcuts={shortcutsEnabled ? "[" : undefined} onClick={event => { event.currentTarget.focus({ preventScroll: true }); cycleAccount(-1); }}><ChevronLeft size={20}/></IconButton><IconButton label="다음 계정" aria-keyshortcuts={shortcutsEnabled ? "]" : undefined} onClick={event => { event.currentTarget.focus({ preventScroll: true }); cycleAccount(1); }}><ChevronRight size={20}/></IconButton></>}<IconButton label="시설 선택 닫기" aria-keyshortcuts="Escape" onClick={dismissTray}><X size={20}/></IconButton></div></div>
         <div className="tray-content">{account ? <>
           {cycle && <>
             <button className={`cycle-review ${cycle.reviewCount > 0 ? "occupied" : "vacant"}`} onClick={() => showInventory("review")}><ScanLine size={30}/><strong>{cycle.reviewLabel}</strong><ChevronRight size={18}/></button>
@@ -212,15 +251,16 @@ export default function App() {
         {account ? <div className="tray-actions owner-actions"><Button variant="outline" disabled={stale || waiting || sending} onClick={recheck}><RefreshCw size={19}/>{waiting ? "지시 대기" : "계정 재확인"}</Button><Button disabled={sending || stale && cycle?.action !== "automation"} onClick={() => { if (!cycle) return; if (cycle.action === "review") showInventory("review"); else open(cycle.action === "schedule" ? "schedule" : cycle.action === "automation" ? "automation" : "account"); }}>{cycle?.actionLabel || "계정 상태 확인"}</Button></div> : <div className="tray-actions">{activeProcess === "generation" ? <><Button variant="outline" onClick={() => open("automation")}>자동화 설정</Button><Button disabled={stale || productionPending} onClick={toggleProduction}>{productionPending ? "지시 대기" : s.automation.productionEnabled ? "생산 멈춤" : "생산 재개"}</Button></> : activeProcess === "review" ? <><Button variant="outline" onClick={() => open("automation")}>검수 상태</Button><Button onClick={() => showInventory("hold")}>검수함 열기</Button></> : activeProcess === "stock" ? <><Button variant="outline" onClick={() => { setSelected(null); open("accounts"); }}>계정 선택</Button><Button onClick={() => showInventory()}>제출할 그림</Button></> : activeProcess === "inspection" ? <><Button variant="outline" onClick={() => open("schedule")}>다음 일정</Button><Button onClick={() => showInventory("review")}>심사 중 보기</Button></> : activeProcess === "archive" ? <><Button variant="outline" onClick={() => showInventory("approved")}>승인 보관</Button><Button onClick={() => showInventory("published")}>공개 보관</Button></> : activeProcess === "revenue" ? <><Button variant="outline" onClick={() => open("accounts")}>계정 선택</Button><Button onClick={() => open("revenue")}>수익 기록부</Button></> : <><Button variant="outline" onClick={() => open("automation")}>제출 자동화</Button><Button onClick={() => open("schedule")}>다음 일정</Button></>}</div>}
       </section>}
       <nav id="main-tools" className="command-dock" tabIndex={-1} hidden={trayOpen} aria-label="관제 도구" inert={!!panel || trayOpen}>
-        <button onClick={() => { dismissTray(); world.current?.reset(); }}><Focus size={26}/><span>전체 보기</span></button>
-        <button onClick={() => { setSelected(null); open("schedule"); }}><CalendarDays size={26}/><span>다음 일정</span></button>
-        <button onClick={() => { setSelected(null); open("activity"); }}><ScanLine size={26}/><span>제출·심사 이력</span></button>
-        <button onClick={() => open("automation")}><Settings2 size={26}/><span>자동화 설정</span></button>
+        <button aria-keyshortcuts={shortcutsEnabled ? "0 Home" : undefined} title={shortcutsEnabled ? "전체 보기 (0 / Home)" : "전체 보기"} onClick={dismissTray}><Focus size={26}/><span>전체 보기</span></button>
+        <button aria-keyshortcuts={shortcutsEnabled ? "S" : undefined} title={shortcutsEnabled ? "다음 일정 (S)" : "다음 일정"} onClick={() => { setSelected(null); open("schedule"); }}><CalendarDays size={26}/><span>다음 일정</span></button>
+        <button aria-keyshortcuts={shortcutsEnabled ? "H" : undefined} title={shortcutsEnabled ? "제출·심사 이력 (H)" : "제출·심사 이력"} onClick={() => { setSelected(null); open("activity"); }}><ScanLine size={26}/><span>제출·심사 이력</span></button>
+        <button aria-keyshortcuts={shortcutsEnabled ? "A" : undefined} title={shortcutsEnabled ? "자동화 설정 (A)" : "자동화 설정"} onClick={() => open("automation")}><Settings2 size={26}/><span>자동화 설정</span></button>
       </nav>
       {panel && <button className="panel-backdrop" aria-label="단지로 돌아가기" onClick={close}/>}
-      <Panels panel={panel} data={data} selected={account} stale={stale} close={close} select={select} open={setPanel} refresh={refresh} toast={notify} reduced={reduced} setReduced={changeReduced} inventory={inventory} setInventory={setInventory} activitySince={activitySince} onAcknowledge={() => { const now = Date.now(); setActivitySince(now); localStorage.setItem("biz-activity-seen", String(now)); }} activeProcess={activeProcess} clearScope={() => setSelected(null)} viewControls={{ reset: () => { close(); dismissTray(); }, zoom: delta => { close(); setSelected(null); setActiveProcess(null); requestAnimationFrame(() => requestAnimationFrame(() => world.current?.zoom(delta))); } }} onRevenueChanged={revenueChanged} onRevenueAccountChange={setRevenueAccountId} revenueYear={revenue?.year ?? revenueYear.current} revenueAccountId={revenueAccountId} canLogout={!localMode} logout={async () => { await post("/logout", {}); setData(null); setPanel(null); setAuth(false); }}/>
+      <Panels panel={panel} data={data} selected={account} stale={stale} close={close} select={select} open={setPanel} refresh={refresh} toast={notify} reduced={reduced} setReduced={changeReduced} onShortcuts={() => setShortcutHelp(true)} inventory={inventory} setInventory={setInventory} activitySince={activitySince} onAcknowledge={() => { const now = Date.now(); setActivitySince(now); localStorage.setItem("biz-activity-seen", String(now)); }} activeProcess={activeProcess} clearScope={() => setSelected(null)} viewControls={{ reset: () => { close(); dismissTray(); }, zoom: delta => { close(); setSelected(null); setActiveProcess(null); requestAnimationFrame(() => requestAnimationFrame(() => world.current?.zoom(delta))); } }} onRevenueChanged={revenueChanged} onRevenueAccountChange={setRevenueAccountId} revenueYear={revenue?.year ?? revenueYear.current} revenueAccountId={revenueAccountId} canLogout={!localMode} logout={async () => { await post("/logout", {}); setData(null); setPanel(null); setShortcutHelp(false); setAuth(false); }}/>
     </> : <main className="connection-screen"><img src="/brand/symbol.svg" alt=""/><h1>{error ? "연결을 확인해 주세요" : auth === null ? "단지에 연결하는 중" : "작업기 연결을 기다립니다"}</h1><p>{error || "미리캔버스 상태가 도착하면 단지가 열립니다."}</p><Button onClick={() => { if (auth === null) void refreshSession(); else void refresh(); }}><RefreshCw size={20}/>다시 확인</Button></main>}
     {confirm && <Modal title={confirm.title} onClose={() => { if (!sending) setConfirm(null); }}><p className="confirm-description">{confirm.description}</p>{commandError && <p className="form-error" role="alert">{commandError}</p>}{stale && <p className="form-error">작업기 연결을 확인한 뒤 지시할 수 있습니다.</p>}<div className="modal-actions"><Button variant="outline" disabled={sending} onClick={() => setConfirm(null)}>취소</Button><Button loading={sending} disabled={sending || stale} onClick={() => void sendCommand()}>지시 보내기</Button></div></Modal>}
+    {auth && shortcutHelp && <ShortcutHelp enabled={shortcutsEnabled} onChange={value => { setShortcutsEnabled(value); localStorage.setItem("biz-shortcuts", String(value)); }} onClose={() => setShortcutHelp(false)}/>}
     {toast && <div className={`toast ${toast.tone}`} role={toast.tone === "error" ? "alert" : "status"}>{toast.tone === "error" ? <TriangleAlert size={22}/> : toast.tone === "success" ? <Check size={22}/> : <Info size={22}/>}<span>{toast.message}</span></div>}
     {error && s && <div className="network-error" role="alert"><span>{error}</span><button onClick={() => void refresh()}>다시 연결</button></div>}
     {refreshing && <span className="sr-only" role="status">상태 갱신 중</span>}

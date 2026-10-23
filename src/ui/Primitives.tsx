@@ -67,6 +67,12 @@ export function Modal({
         onClose();
       }}
       aria-label={title}
+      onKeyDown={(e) => {
+        // A held Escape or IME cancellation must not dismiss the next layer.
+        if (e.key === "Escape" && (e.repeat || e.nativeEvent.isComposing || e.keyCode === 229)) {
+          e.preventDefault(); e.stopPropagation();
+        }
+      }}
       onClick={(e) => {
         if (e.target === e.currentTarget) {
           const r = e.currentTarget.getBoundingClientRect();

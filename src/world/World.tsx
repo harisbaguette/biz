@@ -17,7 +17,7 @@ import {buildAccountStation,buildLedger,buildPrintPress,buildSubmissionClock,ind
 import './World.css';
 
 export type AccountArea='review'|'schedule'|'stock'|'archive'|'account';
-export interface WorldHandle {zoom:(delta:number)=>void;reset:()=>void;rotate:()=>void;focus:(id:string)=>void;visitDistrict:(index:number)=>void;focusProcess:(key:ProcessKey)=>void;}
+export interface WorldHandle {zoom:(delta:number)=>void;pan:(x:number,y:number)=>void;reset:()=>void;rotate:()=>void;focus:(id:string)=>void;visitDistrict:(index:number)=>void;focusProcess:(key:ProcessKey)=>void;}
 interface Props {
  snapshot:Snapshot;selected:string|null;layer:Layer;reduced:boolean;stale:boolean;
  onSelect:(id:string)=>void;onReady:()=>void;onInspectProcess?:(key:ProcessKey)=>void;activeProcess?:ProcessKey|null;
@@ -57,7 +57,7 @@ const World=forwardRef<WorldHandle,Props>(function World(props,ref){
  const [mode,setMode]=useState(()=>modeFor(innerWidth,innerHeight)),[attempt,setAttempt]=useState(0),[loaded,setLoaded]=useState(false),[error,setError]=useState<string|null>(null),[missing,setMissing]=useState(0),[pictureMissing,setPictureMissing]=useState(0);
  const plans=props.snapshot.accounts.some(account=>!!accountCycle(account,props.snapshot,props.stale,{schedules:props.schedules}).overviewPlanLabel);
  latest.current=props;revision.current++;
- useImperativeHandle(ref,()=>({zoom:d=>controller.current?.zoom(d),reset:()=>controller.current?.reset(),rotate:()=>controller.current?.rotate(),focus:id=>controller.current?.focus(id),focusProcess:key=>controller.current?.focusProcess(key),visitDistrict:i=>controller.current?.visitDistrict(i)}),[]);
+ useImperativeHandle(ref,()=>({zoom:d=>controller.current?.zoom(d),pan:(x,y)=>controller.current?.pan(x,y),reset:()=>controller.current?.reset(),rotate:()=>controller.current?.rotate(),focus:id=>controller.current?.focus(id),focusProcess:key=>controller.current?.focusProcess(key),visitDistrict:i=>controller.current?.visitDistrict(i)}),[]);
  useEffect(()=>{
   if(!host.current)return;const element=host.current;setLoaded(false);setError(null);setMissing(0);setPictureMissing(0);(window as unknown as {__bizWorld:unknown}).__bizWorld={ready:false};
   let renderer:THREE.WebGLRenderer;try{renderer=new THREE.WebGLRenderer({antialias:true,alpha:false,powerPreference:'low-power'});}catch{setError('작업소를 열지 못했습니다.');latest.current.onReady();return;}
@@ -189,7 +189,13 @@ const World=forwardRef<WorldHandle,Props>(function World(props,ref){
    const units=Math.max((Math.max(...xs)-Math.min(...xs))/(safe.right-safe.left),(maxY-minY)/Math.max(120,safe.bottom-safe.top-10));camera.left=-w*units/2;camera.right=w*units/2;camera.top=h*units/2;camera.bottom=-h*units/2;
    const shift=up.multiplyScalar((minY+maxY)/2+((safe.top+safe.bottom)/2-h/2)*units-(plans&&layout.compactLandscape?12*units:0)).add(right.multiplyScalar((Math.min(...xs)+Math.max(...xs))/2-((safe.left+safe.right)/2-w/2)*units));controls.target.copy(target).add(shift);camera.position.copy(controls.target).add(dir);camera.zoom=1;camera.updateProjectionMatrix();controls.update();camera.updateMatrixWorld(true);following=true;dirty=true;
   }
-  controller.current={zoom:delta=>{camera.zoom=THREE.MathUtils.clamp(camera.zoom*(delta>0?1.2:1/1.2),.65,3);camera.updateProjectionMatrix();following=false;dirty=true;},reset:()=>fit(true),rotate:()=>fit(true),focus:id=>{const account=latest.current.snapshot.accounts.find(item=>item.id===id);if(account){
+  controller.current={zoom:delta=>{camera.zoom=THREE.MathUtils.clamp(camera.zoom*(delta>0?1.2:1/1.2),.65,3);camera.updateProjectionMatrix();following=false;dirty=true;},pan:(x,y)=>{
+   settleControls();camera.updateMatrixWorld(true);
+   const right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0),up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1);right.y=0;up.y=0;right.normalize();up.normalize();
+   const next=controls.target.clone().addScaledVector(right,x*(camera.right-camera.left)/camera.zoom*.08).addScaledVector(up,y*(camera.top-camera.bottom)/camera.zoom*.08);
+   next.x=THREE.MathUtils.clamp(next.x,layout.minX-8,layout.maxX+8);next.z=THREE.MathUtils.clamp(next.z,layout.minZ-8,layout.maxZ+8);
+   camera.position.add(next.clone().sub(controls.target));controls.target.copy(next);controls.update();following=false;dirty=true;
+  },reset:()=>fit(true),rotate:()=>fit(true),focus:id=>{const account=latest.current.snapshot.accounts.find(item=>item.id===id);if(account){
     settleControls();readSafe();const p=layout.plots[account.number-1],dir=direction.clone(),zoom=layout.landscape?1.8:2.35,w=element.clientWidth,h=element.clientHeight,units=Math.max(7.5*(layout.compactLandscape?1.4:1)/(Math.min(safe.right-safe.left,layout.landscape?550:400)*.8),(plans?9:7.8)/Math.max(120,(safe.bottom-safe.top)*.8));
     controls.target.set(p[0],.5,p[1]+1.3);camera.position.copy(controls.target).add(dir);camera.lookAt(controls.target);camera.updateMatrixWorld(true);
     const up=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,1),right=new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld,0);controls.target.add(up.multiplyScalar(((safe.top+safe.bottom)/2-h/2)*units)).add(right.multiplyScalar(-((safe.left+safe.right)/2-w/2)*units));camera.position.copy(controls.target).add(dir);camera.left=-w*units*zoom/2;camera.right=w*units*zoom/2;camera.top=h*units*zoom/2;camera.bottom=-h*units*zoom/2;camera.zoom=zoom;camera.updateProjectionMatrix();controls.update();dirty=true;

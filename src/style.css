@@ -48,3 +48,12 @@
 .cycle-plan{margin-block:var(--p-space-xs);font-size:var(--p-text-sm);line-height:var(--p-leading-normal);color:var(--p-ink);overflow-wrap:anywhere}.cycle-plan>span{color:var(--p-muted)}
 
 @media(max-width:767px){.game-shell .panel-schedule.ui-sheet{height:auto;max-height:80dvh}}
+
+/* Keyboard hints remain secondary; mobile reaches them from screen settings. */
+.game-tray .tray-navigation{flex:none;gap:var(--p-space-2xs)}
+.shortcut-setting{display:flex;align-items:center;justify-content:space-between;gap:var(--p-space-md);padding-bottom:var(--p-space-sm);border-bottom:var(--p-border-width) solid var(--p-line);font-weight:var(--p-weight-semibold)}
+.shortcut-list{margin-block:var(--p-space-sm)}
+.shortcut-list>div{display:grid;grid-template-columns:minmax(5.5em,auto) minmax(0,1fr);align-items:baseline;gap:var(--p-space-sm);padding-block:var(--p-space-xs);border-bottom:var(--p-border-width) solid var(--p-line);font-size:var(--p-text-body)}
+.shortcut-list dd{margin:0;line-height:var(--p-leading-normal)}
+.shortcut-list kbd{display:inline-block;min-width:var(--p-size-xl);padding:var(--p-space-2xs) var(--p-space-xs);border:var(--p-border-width) solid var(--p-control-border);border-bottom-width:var(--p-border-width-strong);border-radius:var(--game-notch);background:var(--p-tile);font:inherit;font-weight:var(--p-weight-bold);box-shadow:var(--p-control-shadow)}
+@media(max-width:767px){.game-hud .shortcut-help-button{display:none}}

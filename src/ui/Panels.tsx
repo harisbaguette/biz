@@ -68,6 +68,7 @@ interface Props {
   toast: (s: string, tone?: "success" | "error" | "info") => void;
   reduced: boolean;
   setReduced: (s: boolean) => void;
+  onShortcuts?: () => void;
   initialFilter?: string;
   inventory: { query: string; filter: string; page: number };
   setInventory: (next: { query: string; filter: string; page: number }) => void;
@@ -92,8 +93,8 @@ export function Panels(p: Props) {
     if (!p.panel) return;
     if (!document.querySelector('dialog[open]')) heading.current?.focus({ preventScroll: true });
     const trap = (event: KeyboardEvent) => {
-      if (document.querySelector('dialog[open]')) return;
-      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); closeRef.current(); return; }
+      if (document.querySelector('dialog[open]') || event.defaultPrevented || event.isComposing || event.keyCode === 229) return;
+      if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); if (!event.repeat && !event.ctrlKey && !event.metaKey && !event.altKey) closeRef.current(); return; }
       if (event.key !== 'Tab' || event.ctrlKey || event.altKey || event.metaKey) return;
       const elements = [...(panelRoot.current?.querySelectorAll<HTMLElement>('button:not(:disabled), a[href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, [tabindex="0"]') || [])].filter(node => node.getClientRects().length > 0 && !node.closest('[hidden]'));
       event.preventDefault(); event.stopPropagation();
@@ -785,6 +786,7 @@ export function Panels(p: Props) {
                 </div>{l.issue && <p className="muted lane-recovery">{l.detail}</p>}</div>
               ))}
               <h3 className="section-title">화면</h3>
+              {p.onShortcuts && <Button variant="outline" onClick={event => { event.currentTarget.focus({ preventScroll: true }); p.onShortcuts?.(); }}>단축키·조작 안내</Button>}
               {p.viewControls && <div className="world-view-settings"><div className="world-view-buttons"><Button variant="outline" onClick={p.viewControls.reset}><Focus size={22}/> 전체 보기</Button><Button variant="outline" onClick={() => p.viewControls!.zoom(1)}><Plus size={22}/> 확대</Button><Button variant="outline" onClick={() => p.viewControls!.zoom(-1)}><Minus size={22}/> 축소</Button></div></div>}
 
               <div className="automation-row">
